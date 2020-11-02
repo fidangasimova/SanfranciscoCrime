@@ -8,6 +8,7 @@ setwd("SanfranciscoCrime")
 #  Install and Load libraries
 # # # # # # # # # # # # # # # #
 
+if(!require(Hmisc)) install.packages("Hmisc", repos = "http://cran.us.r-project.org")
 if(!require(dslabs)) install.packages("dslabs", repos = "http://cran.us.r-project.org")
 if(!require(tidyr)) install.packages("tidyr", repos = "http://cran.us.r-project.org")
 if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
@@ -21,6 +22,7 @@ if(!require(readr)) install.packages("readr", repos = "http://cran.us.r-project.
 if(!require(gridExtra)) install.packages("gridExtra", repos = "http://cran.us.r-project.org")
 
 
+library(Hmisc)
 library(tidyr)
 library(dslabs)
 library(tidyverse)
@@ -38,38 +40,57 @@ library(gridExtra)
 #  Load  data         #
 # # # # # # # # # # # #
 
-
 sf_crime <- read.csv("sf_crime.csv", header=TRUE, sep = ",", row.names = NULL, quote = "\"")
-sf_crime<-as.data.frame(sf_crime, stringsAsFactors=TRUE) %>% mutate(Id = as.numeric(IncidntNum), 
+
+# Versions without spaces
+names(sf_crime) <- make.names(names(sf_crime), unique=TRUE)
+
+#  Change the format from scientific to numerical
+options(scipen = 999)
+
+sf_crime<-as.data.frame(sf_crime, stringsAsFactors=TRUE) %>% mutate(IncidntNum = as.numeric(IncidntNum), 
                                                                     Category = as.character(Category),
                                                                     Descript = as.character(Descript),
                                                                     Resolution = as.character(Resolution),
                                                                     PdDistrict = as.character(PdDistrict))
 
-# # # # # # # # # # # # # # # # # 
-#   Data Cleaning               # 
-# # # # # # # # # # # # # # # # # 
+
+
+
+# # # # # # # # # # # # # # # # # #
+#   Data Description and Cleaning # 
+# # # # # # # # # # # # # # # # # #
+
+#  Describe sf_crime data set
+describe(sf_crime)
+
+str(sf_crime)
 
 #  Check missing values
 sum(is.na(sf_crime))
 
-# Show first 10 rows
-head(sf_crime, 10)
+#  Show first 10 rows
+#  head(sf_crime,10)%>%knitr::kable("simple")
+print(head(sf_crime,10))
 
-# Summary of the data set
+#  Summary of the data set
 summary(sf_crime)
 
 #  Number of variables
 print(ncol(sf_crime))
 
-# Number of observations
+#  Number of observations
 print(nrow(sf_crime))
 
+#  Convert year character into class Date
+sf_crime <- transform(sf_crime, Date_time = as.Date(Date, "%m/%d/%Y", tz = "UTC"))
 
+sf_crime <- transform(sf_crime, Date_time = as.Date(Date))
+#  Create variables Date_month, Date_day, Date_year
+sf_crime<-sf_crime %>% mutate(Date_month = month(Date_time), Date_day = day(Date_time), Date_year = year(Date_time))
 
+sf_crime<-arrange(sf_crime, by=IncidntNum)
+lapply(sf_crime, summary)
 
-
-# some of our column names have spaces in them. This line changes the column names to 
-# versions without spaces, which let's us talk about the columns by their names.
-names(chocolateData) <- make.names(names(chocolateData), unique=TRUE)
-
+#  Remove columns after data cleaning
+within(sf_crime, rm(Date))
