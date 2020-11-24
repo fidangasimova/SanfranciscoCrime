@@ -20,8 +20,11 @@ if(!require(corrplot)) install.packages("corrplot", repos = "http://cran.us.r-pr
 if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
 if(!require(readr)) install.packages("readr", repos = "http://cran.us.r-project.org")
 if(!require(gridExtra)) install.packages("gridExtra", repos = "http://cran.us.r-project.org")
+if(!require(ggthemes)) install.packages("ggthemes", repos = "http://cran.us.r-project.org")
 
 
+#  Load Libraries
+library(ggthemes)
 library(Hmisc)
 library(tidyr)
 library(dslabs)
@@ -39,7 +42,7 @@ library(gridExtra)
 # # # # # # # # # # # # 
 #  Load  data         #
 # # # # # # # # # # # #
-
+url <- https://www.kaggle.com/roshansharma/sanfranciso-crime-dataset
 sf_crime <- read.csv("sf_crime.csv", header=TRUE, sep = ",", row.names = NULL, quote = "\"")
 
 # Names of columns without spaces
@@ -52,6 +55,8 @@ sf_crime<-as.data.frame(sf_crime, stringsAsFactors=TRUE) %>% mutate(IncidntNum =
                                                                     Category = as.character(Category),
                                                                     Descript = as.character(Descript),
                                                                     Resolution = as.character(Resolution),
+                                                                    DayOfWeek = factor(DayOfWeek, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", 
+                                                                                                   "Friday", "Saturday", "Sunday")),
                                                                     PdDistrict = as.character(PdDistrict))
 
 
@@ -83,8 +88,12 @@ print(nrow(sf_crime))
 sf_crime <- transform(sf_crime, Date_time = as.Date(Date, "%m/%d/%Y", tz = "UTC"))
 
 #  Create variables Date_month, Date_day, Date_year
-sf_crime<-sf_crime %>% mutate(Date_month = month(Date_time),
-                              Date_day = day(Date_time), Date_year = year(Date_time))
+sf_crime<-sf_crime %>% mutate(Date_month = month(Date_time), 
+                              Date_day = day(Date_time), Date_year = year(Date_time)) %>%
+                       mutate(Month = month.name[Date_month])
+
+sf_crime <- sf_crime  %>% mutate (Month = factor(Month, levels = month.name))
+
 
 #  Order the data by increasing incident number IncidntNum(incident ID)
 sf_crime<-arrange(sf_crime, by=IncidntNum)
@@ -97,6 +106,9 @@ print(sum(duplicated(sf_crime$IncidntNum)))
 
 #  Find index of the duplicates among IncidntNum(incident ID)
 dup <- sf_crime$IncidntNum[duplicated(sf_crime$IncidntNum)]
+
+#  Print 20 incident ID's with more than one crime
+head(dup, 20) %>% knitr::kable("simple")
 
 #  Summary of all variables
 lapply(sf_crime, summary)
@@ -111,6 +123,7 @@ head(sf_crime,10)%>%knitr::kable("simple")
 
 #  Description of variables in processed sf_crime
 str(sf_crime)
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #    Visualization and Descriptive statistics     # 
@@ -128,15 +141,15 @@ sf_crime %>% summarise(n_incidents = n_distinct(IncidntNum),
                        n_district = n_distinct(PdDistrict),
                        n_address = n_distinct(Address)) %>%knitr::kable()
 
-#  Number of crime for each district
+#  Number of crime occurrences for each district
 sf_crime %>% group_by(PdDistrict) %>% 
   summarize(count=n())%>%
   ggplot(aes(x= reorder(PdDistrict, count), y = count))+
-  geom_bar(stat='identity', alpha=.5, color="black", fill = "red")+
+  geom_bar(stat='identity', alpha=.5, color = "black", fill = "red")+
   scale_fill_continuous(type = "viridis") +
-  ggtitle("Occurrance of Crime by District") +
+  ggtitle("Occurrence of Crime by District") +
   coord_flip(y=c(0, 30000))+
-  labs(x="District", y="Number of Crime Occurance")+
+  labs(x="District", y="Number of Crime Occurrences")+
   geom_text(aes(label= count), hjust=-0.1, size=3) +
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -146,41 +159,99 @@ sf_crime %>%group_by(Category) %>%
   ggplot(aes(x = reorder(Category, -count), y = count)) +
   geom_bar(stat="identity", alpha=.5, color="black", fill= "blue") + theme_bw()+
   ggtitle("TOP 10 Crimes by Category") +
-  labs(x = "Category", y = "Number of Occurance")+
+  labs(x = "Category", y = "Number of Occurrences")+
   theme(plot.title = element_text(hjust = 0.5))+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-
 #  Pie-Chart Crime Frequency on weekdays
-sf_crime %>%group_by(DayOfWeek) %>% 
+sf_crime %>% 
+  group_by(DayOfWeek) %>% 
   summarize(count=n()) %>%
   mutate(percent = count /sum(count) *100.0) %>%
-  arrange(desc(percent)) %>% ggplot( aes(x="", y = percent, fill = DayOfWeek)) +
-  geom_bar(width = 1, stat = "identity") + coord_polar("y")+
-  geom_text(aes(label = paste0(round(percent), "%")), 
+  ggplot( aes(x="", y = - percent, fill = DayOfWeek)) +
+  geom_bar(width = 1, stat = "identity", color = "black") + coord_polar(theta = "y")+
+  geom_text(aes(label = paste0(round(percent), "%", sep = "\n", DayOfWeek)), 
             position = position_stack(vjust = 0.5)) +
   labs(x = NULL, y = NULL, fill = NULL, 
-       title = "Crime Occurance on Weekdays") +
+       title = "Crime Occurances on Weekdays") +
   guides(fill = guide_legend(reverse = TRUE)) +
-  scale_fill_manual(values = c("#ffd700", "#bcbcbc", "#ffa500", "#254290", "#f0e68c", "#808000", "#0000ff")) +
+  scale_fill_manual(values = c("orange", "red", "yellow", "blue",  "green", "grey", "purple")) +
   theme_classic() +
   theme(axis.line = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         plot.title = element_text(hjust = 0.5, color = "#666666"))
 
+#  Number of Crime Occurrences on Weekdays
+sf_crime  %>% group_by(Month) %>% 
+ summarize(count=n()) %>% arrange(desc(count))  %>% 
+  ggplot(aes(x = Month, y = count)) +
+  geom_bar(stat="identity", alpha=.5, color="red", fill= "purple", position = 'dodge') + theme_bw()+
+  scale_fill_continuous(type = "viridis") +
+  ggtitle("Crimes on Weekdays") +
+  labs(title = "Crime over Months",
+           x = "Month", 
+           y = "Number of Occurrences")+
+  geom_text(aes(label= count),vjust = -0.5, position = position_dodge(width = .70), hjust=0.5, size = 2, inherit.aes = TRUE) + 
+  scale_y_continuous(breaks=seq(0, 15000, by= 5000)) +
+  theme_bw()  + 
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#  Top 10 of most common crime resolutions
+sf_crime %>%group_by(Resolution) %>% 
+  summarize(count=n()) %>% arrange(desc(count)) %>% top_n(10, count) %>%
+  ggplot(aes(x = reorder(Resolution, -count), y = count)) +
+  geom_bar(stat="identity", alpha=.5, color="black", fill= "green") + theme_bw()+
+  ggtitle("TOP 10 Crime Resolutions") +
+  labs(x = "Resolution Category", y = "Number of Occurrences")+
+  geom_text(aes(label= count),vjust = -0.5, position = position_dodge(width = .70), hjust=0.5, size = 2, inherit.aes = TRUE) + 
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# 2.25 of incidents included more than one crime categories
 
 
-# Use brewer palette
-pie + scale_fill_brewer("Blues") + blank_theme +
-  theme(axis.text.x=element_blank())+
-  geom_text(aes(y = value/7 + c(0, cumsum(value)[-length(value)]), 
-                label = percent(value/100)), size=5)
+
+
+sf_crime %>%filter(Category %in% c("LARCENY/THEFT", "OTHER OFFENSES", "NON-CRIMINAL", "ASSAULT",    
+                                   "VANDALISM", "VEHICLE THEFT", "WARRANTS", "BURGLARY", 
+                                   "SUSPICIOUS OCC", "MISSING PERSON"), Resolution %in% c("NONE", "ARREST, BOOKED")) %>%
+  group_by(Category) %>% 
+  mutate(count=n()) %>% arrange(desc(count)) %>%
+  ggplot(aes(x = reorder(Category, -count), y = count)) +
+  geom_bar(stat="identity", alpha=.5, color = "blue", fill = "grey" ) + theme_bw()+
+  scale_fill_continuous(type = "viridis") +
+  ggtitle("TOP 10 Crimes by Category") +
+  facet_wrap(~Resolution) +
+  ggtitle("TOP 10 Crime Resolutions") +
+  labs(x = "Resolution Category", y = "Number of Occurrences")+
+  #geom_text(aes(label= count),vjust = -0.5, position = position_dodge(width = .60), hjust=0.5, size = 2, inherit.aes = TRUE) + 
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#  Top 10 of the most frequent addresses in San Francisco
+
+sf_crime  %>% group_by(Address) %>% 
+  summarize(count=n()) %>% arrange(desc(count)) %>% 
+  top_n(10, count) %>%knitr::kable()
 
 
 
+
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
 
 #  Correlation between numeric class variables
-cor.data<-cor(sf_crime[ , c("IncidntNum","Date_month", "Date_month", "X", "Y")])
+cor.data<-cor(sf_crime[ , c("IncidntNum","Month", "Date_month", "X", "Y")])
 corrplot(cor.data, method='circle', type = "upper")
 

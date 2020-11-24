@@ -1,30 +1,32 @@
 ---
-title: "Report"
-author: "FH"
-date: "12/28/2020"
+title: "PROJECT II: San Francisco Crime"
+author: "Fidan H"
+date: "October 8, 2020"
+---output: html_document
 output: pdf_document
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::knit_meta(clean=T)
 ```
+# Inroduction
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+This dataset is part of our completed playground competition entitled San Francisco Crime Classification. Visit the competition page if you are interested in checking out past discussions, competition leaderboard, or more details regarding the competition. If you are curious to see how your results rank compared to others', you can still make a submission at the competition submission page!
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+The original dataset is from SF OpenData, the central clearinghouse for data published by the City and County of San Francisco.
 
-```{r cars}
-summary(cars)
-```
+The generated data set **sf_crime** contains no missing data and consists of following variables:
 
-## Including Plots
+- This dataset contains incidents derived from SFPD Crime Incident Reporting system. The data ranges from 1/1/2003 to 5/13/2015. The training set and test set rotate every week, meaning week 1,3,5,7… belong to test set, week 2,4,6,8 belong to training set. There are 9 variables:
 
-You can also embed plots, for example:
+- *Dates* - timestamp of the crime incident
+- *Category* - category of the crime incident (only in train.csv).
+- *Descript* - detailed description of the crime incident (only in train.csv)
+- *DayOfWeek* - the day of the week
+- *PdDistrict* - name of the Police Department District
+- *Resolution* - how the crime incident was resolved (only in train.csv)
+- *Address* - the approximate street address of the crime incident
+- *X* - Longitude
+- *Y* - Latitude
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
