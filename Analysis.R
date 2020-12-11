@@ -58,11 +58,19 @@ options(scipen = 999)
 
 sf_crime<-as.data.frame(sf_crime, stringsAsFactors=TRUE) %>%
   mutate(IncidntNum = as.numeric(IncidntNum),
-         PdId = as.numeric(PdId),
-         Category = as.character(Category),
-         Descript = as.character(Descript),
-         Resolution = as.character(Resolution),
-         DayOfWeek = factor(DayOfWeek, levels = c("Monday", "Tuesday", "Wednesday",
+         PdId       = as.numeric(PdId),
+         Category   = factor(Category, levels = c("MISSING PERSON", "LARCENY/THEFT", "OTHER OFFENSES", "BURGLARY",                   
+                                                "SUSPICIOUS OCC","WARRANTS", "ASSAULT","NON-CRIMINAL",               
+                                                "STOLEN PROPERTY", "WEAPON LAWS", "DRUG/NARCOTIC","EMBEZZLEMENT",               
+                                                "RUNAWAY", "DRUNKENNESS", "FORGERY/COUNTERFEITING","ROBBERY",                     
+                                                "VEHICLE THEFT", "FRAUD", "SEX OFFENSES, FORCIBLE", "SECONDARY CODES",            
+                                                "KIDNAPPING", "VANDALISM", "PROSTITUTION", "DRIVING UNDER THE INFLUENCE",
+                                                "RECOVERED VEHICLE", "SEX OFFENSES, NON FORCIBLE","TRESPASS", "ARSON",                      
+                                                "DISORDERLY CONDUCT", "LIQUOR LAWS", "FAMILY OFFENSES","EXTORTION",                  
+                                                "BAD CHECKS", "LOITERING", "SUICIDE", "BRIBERY", "GAMBLING","PORNOGRAPHY/OBSCENE MAT", "TREA")),
+         Descript    = as.character(Descript) %>% factor(),
+         Resolution  = as.character(Resolution),
+         DayOfWeek   = factor(DayOfWeek, levels = c("Monday", "Tuesday", "Wednesday",
                                                   "Thursday","Friday", "Saturday", "Sunday")),
          PdDistrict = as.character(PdDistrict))
 
@@ -84,7 +92,7 @@ print(ncol(sf_crime))
 #  Number of observations
 print(nrow(sf_crime))
 
-#  Convert char variable "Time" into a numeric variable
+#  Convert char variable "Time_Hour" into a numeric variable
 hhmm2dec <- function(x) {
   xlist <- strsplit(x,split=":")
   h <- as.numeric(sapply(xlist,"[",1))
@@ -93,11 +101,11 @@ hhmm2dec <- function(x) {
   return(xdec)
 }
 
-#  Round variable "Time" without minutes
-sf_crime$Time <- round(hhmm2dec(sf_crime$Time), 0)
+#  Round variable "Time_Hour" without minutes
+sf_crime$Time_Hour <- round(hhmm2dec(sf_crime$Time), 0)
 
 # Replace Hours = 24 with Hours = 0
-sf_crime$Time <-replace(sf_crime$Time, sf_crime$Time ==24, 0) 
+sf_crime$Time_Hour <-replace(sf_crime$Time_Hour, sf_crime$Time_Hour ==24, 0) 
 
 #  Convert "Date" character into class Date
 sf_crime <- transform(sf_crime, Date_time = as.Date(Date, "%m/%d/%Y", tz = "UTC"))
@@ -119,16 +127,16 @@ sf_crime$Category_Violent_dummy <- ifelse (sf_crime$Category %in% c("ASSAULT", "
 
 #  Create a new variable "Count_Address_Occur" to count the number of Occurrences of Addresses 
 sf_crime <- sf_crime %>% group_by(Address) %>%
-  mutate(Count_Address_Occur = n())  %>%
-  arrange(desc(Count_Address_Occur))  
+            mutate(Count_Address_Occur = n())  %>%
+            arrange(desc(Count_Address_Occur))  
 
 #  Remove columns after data cleaning
-rm(Date, Date_time)
+rm(Date, Date_time, Time)
 
 
 #  Reorder columns of sf_crime data
 sf_crime<-sf_crime[, c("PdId",  "IncidntNum", "Category","Category_Violent_dummy", "Descript",  "Resolution","Resolution_dummy", 
-                      "DayOfWeek","Date_Day", "Date_Year", "Date_Month", "Month", "Time", "Date_time",                                                       
+                      "DayOfWeek","Date_Day", "Date_Year", "Date_Month", "Month", "Time_Hour", "Date_time",                                                       
                       "PdDistrict", "Address", "Count_Address_Occur", "Y",  "X", "Location")]
 
 #  Order the data by increasing incident number "PdId"(police department ID)
@@ -141,7 +149,7 @@ View(sf_crime)
 #    Visualization and Descriptive statistics     # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-#   Find duplicates among "IncidntNum"(incident ID)
+#  Find duplicates among "IncidntNum"(incident ID)
 duplicated(sf_crime$IncidntNum)
 
 #  Total number of duplicates among among "IncidntNum"(incident ID)
@@ -193,6 +201,8 @@ sf_crime %>% group_by(PdDistrict) %>%
 # # # # # # # # # #
 
 #  Crime Category
+class(sf_crime$Category)
+nlevels(sf_crime$Category)
 print(unique(sf_crime$Category))
 
 #  Top 10 crimes with the greatest number of occurrence
@@ -293,10 +303,10 @@ sf_crime  %>% group_by(Descript) %>%
 #   Day Time      # 
 # # # # # # # # # #
 
-#  Occurrence of crime during a day time
-sf_crime %>%group_by(Time) %>% 
+#  Occurrence of crime during a day Time_Hour
+sf_crime %>%group_by(Time_Hour) %>% 
   summarize(count=n(), count_min = min(count), count_max = max(count)) %>%
-  ggplot(aes(x = Time, y = count)) +
+  ggplot(aes(x = Time_Hour, y = count)) +
   geom_bar(stat="identity", alpha=.5, color="black", fill= "green") + theme_bw()+
   geom_vline(xintercept = 5, colour = "red") +
   geom_vline(xintercept = 18, colour = "red") +
@@ -306,12 +316,12 @@ sf_crime %>%group_by(Time) %>%
   geom_text(aes(label= count),vjust = -0.5, position = position_dodge(width = .60), hjust=0.5, size = 2, inherit.aes = TRUE) 
 
 #  Top 10 crime category over day time
-sf_crime%>% group_by(Time, Category) %>% 
+sf_crime%>% group_by(Time_Hour, Category) %>% 
   summarise(count = n()) %>%
   filter(Category %in% c("LARCENY/THEFT", "OTHER OFFENSES", "NON-CRIMINAL", "ASSAULT",    
                          "VANDALISM", "VEHICLE THEFT", "WARRANTS", "BURGLARY", 
                          "SUSPICIOUS OCC", "MISSING PERSON")) %>%
-  ggplot(aes(x = Time, y = count)) +
+  ggplot(aes(x = Time_Hour, y = count)) +
   geom_line(aes(color=Category)) +
   ggtitle("Hour of the Day") +
   scale_x_continuous(breaks=seq(0, 23, by= 1))+
@@ -343,14 +353,15 @@ sf_crime %>% group_by(Address) %>%
 # # # # # # # # # # # # # # # # # # # # # # 
 
 #  Code to generate the validation set
+
 set.seed(342)
-test_index <- createDataPartition(y = sf_crime$Category, times = 1, p = 0.1, list = FALSE)
+test_index <- createDataPartition(y = sf_crime$Category , times = 1, p = 0.1, list = FALSE)
 sf_crime_p <- sf_crime[-test_index,]
 temp <- sf_crime[test_index,]
 
 #  Make sure "IncidntNum" in validation set are also in sf_crime_p set
 validation <- temp %>% 
-  semi_join(sf_crime_p, by = "IncidntNum")%>%
+  semi_join(sf_crime_p, by = "IncidntNum")
   
 #  Add rows removed from validation set back into sf_crime_p set
 removed <- anti_join(temp, validation)
@@ -368,7 +379,7 @@ rm(test_index, temp, removed)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 set.seed(110)
-test_index <- createDataPartition(y=sf_crime_p$Category, times = 1, p = 0.2, list = FALSE)
+test_index <- createDataPartition(y = sf_crime_p$Category, times = 1, p = 0.2, list = FALSE)
 test_set <- sf_crime_p[test_index, ]
 train_set <- sf_crime_p[-test_index, ]  
 
@@ -378,36 +389,69 @@ test_set <- test_set %>%
   semi_join(train_set, by = "IncidntNum") 
 
 # RMSE FUNCTION: For the evaluation of the model RMSE function will be used
-RMSE <- function(true_category, predicted_category){
-  sqrt(mean((true_category - predicted_category)^2, na.rm = T))
+RMSE <- function(true_count, predicted_count){
+  sqrt(mean((true_count - predicted_count)^2, na.rm = T))
 }
 
 
-# define the outcome and predictors
-y <- sf_crime$Category %>% factor()
-x <- sf_crime$Time
 
-test_index <- createDataPartition(y, times = 1, p = 0.1, list = FALSE)
-train_set <- sf_crime %>% slice(-test_index)
-test_set <- sf_crime %>% slice(test_index)
+fit_glm <- lm(Category_Violent_dummy ~ Resolution_dummy, data=train_set)
+p_hat_glm <- predict(fit_glm, test_set)
+y_hat_glm <- ifelse(p_hat_glm > 0.15, 1, 0) 
 
-test_set$Category
-train_qda <- train( Category ~ Count_Address_Occur , method = "qda", data = train_set) %>% head()
-train_qda <- train( Category ~ Count_Address_Occur , method = "lda", data = train_set) %>% head()
-train_qda <- train( Category ~ Count_Address_Occur , method = "knn", tuneGrid = data.frame(k = seq(1, 10, 2)), data = train_set) %>% head()
+confusionMatrix(y_hat_glm, test_set$Category_Violent_dummy)$overall["Accuracy"]
+y_hat_glm<-y_hat_glm %>%factor()
+
+test_set$Category_Violent_dummy<-test_set$Category_Violent_dummy %>%factor()
+
+nlevels(y_hat_glm )
+nlevels(test_set$Category_Violent_dummy)
+
+
+
+
+# Estimate time and category effect on the number of occurrences 
+# Average rating
+mu <- mean(train_set$Count_Address_Occur)
+basic_RMSE<-RMSE(mu,test_set$Count_Address_Occur)
+basic_RMSE
+
+
+
+# Estimate category effect b_c
+cat_ef <- train_set %>%
+  left_join(time_ef, by='Time_Hour') %>%
+  group_by(Category) %>%
+  summarize(b_c = mean(Count_Address_Occur - mu - b_t))
+
+# Estimate predicted rating
+predicted_count <- test_set %>%
+  left_join(time_ef, by="Time_Hour") %>%
+  left_join(cat_ef,  by="Category") %>%
+  mutate(pred = mu + b_t + b_c) %>%
+  pull(pred)
+
+# Calculate RMSE 
+rmse<-RMSE(predicted_count, test_set$Count_Address_Occur)
+rmse_results <- data_frame(Model = "Time Effects", RMSE = rmse)
+rmse_results%>% knitr::kable()
+
+
+
+# Knn Model
+train_knn <- train( Count_Address_Occur ~ Resolution_dummy , method = "knn",
+                    tuneGrid = data.frame(k = seq(1, 10, 2)), data = train_set) %>% head()
 
                     
-                    # Obtain predictors and accuracy
+# Obtain predictors and accuracy
 predicted_category <- predict(train_qda, test_set) %>% factor()
-
-confusionMatrix(data = predicted_category, reference = test_set$Category%>% factor())$overall["Accuracy"]
-
+confusionMatrix(data = predicted_category, reference = test_set$Count_Address_Occur%>% factor())$overall["Accuracy"]
 rmse <-RMSE(predicted_category, test_set$Category)  
 
   
 # As the correlation shows predictors are not highly correlated, so PCA analysis would not be appropriate method
 #  Correlation between numeric class variables
-cor.data <- cor(sf_crime[, c("Resolution_dummy","Category_violent_dummy", 
-                             "Count_Address_Occur", "Time","Date_Day", "Date_Month")]) %>% as.matrix
+cor.data <- cor(sf_crime[, c("Resolution_dummy","Category_Violent_dummy", 
+                             "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y")]) %>% as.matrix
 corrplot(cor.data, order = "hclust", addrect = 2, type = "lower")
 
