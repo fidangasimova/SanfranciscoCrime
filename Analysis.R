@@ -348,14 +348,19 @@ sf_crime %>% group_by(Address) %>%
 
 # 800 Block of BRYANT ST is the Address of a county jail
 
-# # # # # # # # # # # # # # # # # # # # # # 
-#  Validation set will be 10% of edx data   
-# # # # # # # # # # # # # # # # # # # # # # 
+
+# # # # # # # #  
+#  Analysis   # 
+# # # # # # # #
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # #
+#  Validation set will be 10% of sf_crime data  #  
+# # # # # # # # # # # # # # # # # # # # # # # # #
 
 #  Code to generate the validation set
-
 set.seed(342)
-test_index <- createDataPartition(y = sf_crime$Category , times = 1, p = 0.1, list = FALSE)
+test_index <- createDataPartition(y = sf_crime$Category_Violent_dummy , times = 1, p = 0.1, list = FALSE)
 sf_crime_p <- sf_crime[-test_index,]
 temp <- sf_crime[test_index,]
 
@@ -367,19 +372,16 @@ validation <- temp %>%
 removed <- anti_join(temp, validation)
 sf_crime_p <- rbind(sf_crime_p, removed)
 
+# Remove redundant columns
 rm(test_index, temp, removed)  
   
 
-# # # # # # # #  
-#  Method     # 
-# # # # # # # #
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-#  Generate train and test sets, 20% of edx data
+#  Generate train and test sets, 20% of edx data        #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 set.seed(110)
-test_index <- createDataPartition(y = sf_crime_p$Category, times = 1, p = 0.2, list = FALSE)
+test_index <- createDataPartition(y = sf_crime_p$Category_Violent_dummy, times = 1, p = 0.2, list = FALSE)
 test_set <- sf_crime_p[test_index, ]
 train_set <- sf_crime_p[-test_index, ]  
 
@@ -388,53 +390,74 @@ train_set <- sf_crime_p[-test_index, ]
 test_set <- test_set %>% 
   semi_join(train_set, by = "IncidntNum") 
 
-# RMSE FUNCTION: For the evaluation of the model RMSE function will be used
-RMSE <- function(true_count, predicted_count){
-  sqrt(mean((true_count - predicted_count)^2, na.rm = T))
-}
 
+# As the correlation shows predictors are not highly correlated, so PCA analysis would not be appropriate method
+#  Correlation between numeric class variables
+cor.data <- cor(sf_crime[, c("Resolution_dummy","Category_Violent_dummy", 
+                             "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y")]) %>% as.matrix
+corrplot(cor.data, order = "hclust", addrect = 2, type = "lower")
 
+###########################################
+#  Logistic regression with one predictor #
+###########################################
 
-fit_glm <- lm(Category_Violent_dummy ~ Resolution_dummy, data=train_set)
-p_hat_glm <- predict(fit_glm, test_set)
+#  Linear regression
+fit_lm <- lm(Category_Violent_dummy ~ Resolution_dummy, data=train_set)
+
+#  Fit Logistic regression with one predictor
+fit_glm <- glm(Category_Violent_dummy ~ Resolution_dummy, data=train_set, family = "binomial")
+
+#  Predict "Category_Violent_dummy"
+p_hat_glm <- predict(fit_glm, test_set, type = "response")
+
+# Set values to 1 (violent) if > 0.15 and otherwise 0 (non-violent)
 y_hat_glm <- ifelse(p_hat_glm > 0.15, 1, 0) 
 
-confusionMatrix(y_hat_glm, test_set$Category_Violent_dummy)$overall["Accuracy"]
+#  Set factors to the same factor level
 y_hat_glm<-y_hat_glm %>%factor()
-
 test_set$Category_Violent_dummy<-test_set$Category_Violent_dummy %>%factor()
 
+#  Check the factor levels
 nlevels(y_hat_glm )
 nlevels(test_set$Category_Violent_dummy)
 
+#  Show accuracy of the model
+accuracy_1<- confusionMatrix(y_hat_glm, test_set$Category_Violent_dummy)$overall["Accuracy"]
+accuracy_results <- data_frame(Model = "Logistic regression with one predictor", Accuracy = accuracy_1)
 
+#  Print results
+accuracy_results%>% knitr::kable()
 
+#####################################################
+#  Logistic regression with more than one predictor #
+#####################################################
 
-# Estimate time and category effect on the number of occurrences 
-# Average rating
-mu <- mean(train_set$Count_Address_Occur)
-basic_RMSE<-RMSE(mu,test_set$Count_Address_Occur)
-basic_RMSE
+#  Fit the model
+fit_glm_mp <- glm(Category_Violent_dummy ~ Resolution_dummy + Time_Hour + Date_Day + Date_Month + X + Y, family = "binomial",
+                  data=train_set)
 
+summary(fit_glm_mp)
 
+#  Predict "Category_Violent_dummy"
+p_hat_glm_mp <- predict(fit_glm_mp, test_set)
 
-# Estimate category effect b_c
-cat_ef <- train_set %>%
-  left_join(time_ef, by='Time_Hour') %>%
-  group_by(Category) %>%
-  summarize(b_c = mean(Count_Address_Occur - mu - b_t))
+# Set values to 1 (violent) if > 0.15 and otherwise 0 (non-violent)
+y_hat_glm_mp <- ifelse(p_hat_glm_mp > 0.15, 1, 0) 
 
-# Estimate predicted rating
-predicted_count <- test_set %>%
-  left_join(time_ef, by="Time_Hour") %>%
-  left_join(cat_ef,  by="Category") %>%
-  mutate(pred = mu + b_t + b_c) %>%
-  pull(pred)
+#  Set factors to the same factor level
+y_hat_glm_mp <- y_hat_glm_mp %>% factor()
+test_set$Category_Violent_dummy <- test_set$Category_Violent_dummy %>% factor()
 
-# Calculate RMSE 
-rmse<-RMSE(predicted_count, test_set$Count_Address_Occur)
-rmse_results <- data_frame(Model = "Time Effects", RMSE = rmse)
-rmse_results%>% knitr::kable()
+#  Check the factor levels
+nlevels(y_hat_glm_mp )
+nlevels(test_set$Category_Violent_dummy)
+
+#  Show accuracy of the model
+accuracy_2<- confusionMatrix(y_hat_glm_mp, test_set$Category_Violent_dummy)$overall["Accuracy"]
+accuracy_results <- bind_rows(accuracy_results,
+                              data_frame(Model = "Logistic regression with more than one predictor", Accuracy = accuracy_2))
+#  Print results
+accuracy_results %>% knitr::kable()
 
 
 
@@ -443,15 +466,7 @@ train_knn <- train( Count_Address_Occur ~ Resolution_dummy , method = "knn",
                     tuneGrid = data.frame(k = seq(1, 10, 2)), data = train_set) %>% head()
 
                     
-# Obtain predictors and accuracy
-predicted_category <- predict(train_qda, test_set) %>% factor()
-confusionMatrix(data = predicted_category, reference = test_set$Count_Address_Occur%>% factor())$overall["Accuracy"]
-rmse <-RMSE(predicted_category, test_set$Category)  
 
   
-# As the correlation shows predictors are not highly correlated, so PCA analysis would not be appropriate method
-#  Correlation between numeric class variables
-cor.data <- cor(sf_crime[, c("Resolution_dummy","Category_Violent_dummy", 
-                             "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y")]) %>% as.matrix
-corrplot(cor.data, order = "hclust", addrect = 2, type = "lower")
+
 
