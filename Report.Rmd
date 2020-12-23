@@ -1,7 +1,7 @@
 ---
-title: "PROJECT II: San Francisco Crime"
-author: "Fidan H"
-date: "October 8, 2020"
+title: "PROJECT II: San Francisco Crime (2016)"
+author: "FH"
+date: "December 28, 2020"
 ---output: html_document
 output: pdf_document
 ---
@@ -9,24 +9,239 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 knitr::knit_meta(clean=T)
 ```
+
+
+
 # Inroduction
 
+The analysis performed within this project is based on a data set entitled San Francisco Crime is available on Kaggle and can be found here:
 
-This dataset is part of our completed playground competition entitled San Francisco Crime Classification. Visit the competition page if you are interested in checking out past discussions, competition leaderboard, or more details regarding the competition. If you are curious to see how your results rank compared to others', you can still make a submission at the competition submission page!
 
-The original dataset is from SF OpenData, the central clearinghouse for data published by the City and County of San Francisco.
+- https://www.kaggle.com/roshansharma/sanfranciso-crime-dataset 
 
-The generated data set **sf_crime** contains no missing data and consists of following variables:
+The original dataset is from https://datasf.org/opendata/, the central clearinghouse for data published by the City and County of San Francisco. The San Francisco Police Department does not guarantee the accuracy, completeness, timeliness or correct sequencing of the information as the data is subject to change as modifications and updates are completed. The complete data set can be found here:
 
-- This dataset contains incidents derived from SFPD Crime Incident Reporting system. The data ranges from 1/1/2003 to 5/13/2015. The training set and test set rotate every week, meaning week 1,3,5,7… belong to test set, week 2,4,6,8 belong to training set. There are 9 variables:
 
-- *Dates* - timestamp of the crime incident
-- *Category* - category of the crime incident (only in train.csv).
-- *Descript* - detailed description of the crime incident (only in train.csv)
-- *DayOfWeek* - the day of the week
+- https://data.sfgov.org/Public-Safety/Police-Department-Incident-Reports-Historical-2003/tmnf-yvry
+
+Due to computation power issues only a subset of the data was used. The algorithms were developed using the **sf_crime** data, which is a subset of the of the SF Opendata and includes only 2016. For the evaluation of the recommendation algorithm a **validation** data set was generated. The **validation** data set was only used in the final step to test the final algorithm and contained only 20% of **sf_crime** data.
+
+The following libraries were used:  
+
+```{r warning= FALSE, include = FALSE}
+if(!require(tinytex)) install.packages("tinytex", repos = "http://cran.us.r-project.org")
+if(!require(factoextra)) install.packages("factoextra", repos = "http://cran.us.r-project.org")
+if(!require(Hmisc)) install.packages("Hmisc", repos = "http://cran.us.r-project.org")
+if(!require(dslabs)) install.packages("dslabs", repos = "http://cran.us.r-project.org")
+if(!require(tidyr)) install.packages("tidyr", repos = "http://cran.us.r-project.org")
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(stringr)) install.packages("stringr", repos = "http://cran.us.r-project.org")
+if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
+if(!require(ggplot2)) install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-project.org")
+if(!require(corrplot)) install.packages("corrplot", repos = "http://cran.us.r-project.org")
+if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
+if(!require(readr)) install.packages("readr", repos = "http://cran.us.r-project.org")
+if(!require(gridExtra)) install.packages("gridExtra", repos = "http://cran.us.r-project.org")
+if(!require(ggthemes)) install.packages("ggthemes", repos = "http://cran.us.r-project.org")
+```
+
+
+```{r  message=FALSE}
+library(tinytex)
+library(factoextra)
+library(ggthemes)
+library(Hmisc)
+library(tidyr)
+library(dslabs)
+library(tidyverse)
+library(caret)
+library(data.table)
+library(corrplot)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(stringr)
+library(readr)
+library(gridExtra)
+```
+
+
+```{r echo = FALSE}
+#  Code to download data 
+sf_crime <- read.csv("sf_crime.csv", header=TRUE, sep = ",", row.names = NULL, quote = "\"")
+
+#  Names of columns without spaces
+names(sf_crime) <- make.names(names(sf_crime), unique=TRUE)
+
+#  Change the format from scientific to numerical
+options(scipen = 999)
+
+#  #  #  #  #  #  #  #  #  #  #  #  #  
+#    Data Processing                #  
+#  #  #  #  #  #  #  #  #  #  #  #  #  
+
+sf_crime<-as.data.frame(sf_crime, stringsAsFactors=TRUE) %>%
+         mutate(IncidntNum = as.numeric(IncidntNum),
+                PdId       = as.numeric(PdId),
+                Category   = factor(Category, levels = c("MISSING PERSON", "LARCENY/THEFT", "OTHER OFFENSES", "BURGLARY",                   
+                                                "SUSPICIOUS OCC","WARRANTS", "ASSAULT","NON-CRIMINAL",               
+                                                "STOLEN PROPERTY", "WEAPON LAWS", "DRUG/NARCOTIC","EMBEZZLEMENT",               
+                                                "RUNAWAY", "DRUNKENNESS", "FORGERY/COUNTERFEITING","ROBBERY",                     
+                                                "VEHICLE THEFT", "FRAUD", "SEX OFFENSES, FORCIBLE", "SECONDARY CODES",            
+                                                "KIDNAPPING", "VANDALISM", "PROSTITUTION", "DRIVING UNDER THE INFLUENCE",
+                                                "RECOVERED VEHICLE", "SEX OFFENSES, NON FORCIBLE","TRESPASS", "ARSON",                      
+                                                "DISORDERLY CONDUCT", "LIQUOR LAWS", "FAMILY OFFENSES","EXTORTION",                  
+                                                "BAD CHECKS", "LOITERING", "SUICIDE", "BRIBERY", "GAMBLING","PORNOGRAPHY/OBSCENE MAT", "TREA")),
+              Descript    = as.character(Descript) %>% factor(),
+              Resolution  = as.character(Resolution),
+              DayOfWeek   = factor(DayOfWeek, levels = c("Monday", "Tuesday", "Wednesday",
+                                                  "Thursday","Friday", "Saturday", "Sunday")),
+               PdDistrict = as.character(PdDistrict))
+
+
+
+
+```
+
+## Data Exploration and Data Processing
+The **sf_cime** data set contains 150,500 observations and 13 variables represented in 13 columns. Each row represents one incident with an ID given by the Police Departmen.
+
+```{r }
+#  Number of variables
+print(ncol(sf_crime))
+```
+
+```{r }
+#  Number of observations
+print(nrow(sf_crime))
+```
+
+This data set contains incidents derived from SFPD Crime Incident Reporting system. The data ranges from January to December 2016. The downloaded data set **sf_crime** contains no missing data and consists of following 13 variables: 
+
+- *PdId* - ID given by Police Department District
+- *IncidntNum* - ID of th incident
+- *Date* - time in mm/dd/yy format
+- *Time* - time of the day from 00 to 24 hours
+- *Category* - category of the crime incident
+- *Descript* - detailed description of the crime incident
+- *DayOfWeek* - the day of the week (Mo-Fr)
 - *PdDistrict* - name of the Police Department District
-- *Resolution* - how the crime incident was resolved (only in train.csv)
+- *Resolution* - how the crime incident was resolved 
 - *Address* - the approximate street address of the crime incident
 - *X* - Longitude
 - *Y* - Latitude
+- *Location* -  Longitude and Latitude combined in one variable
+
+**sf_crime** contains no missing data.
+```{r }
+# Check missing values
+sum(is.na(sf_crime))
+```
+
+In order to visualize and analyze the data set several new variables were created through transformation of existing variables.
+
+The variable *Date* was transformed and split into *Date_Month*, *Date_Day*, *Date_Year*. Variable *Time* was converted into a numerical variable *Time_Hour*. *Resolution_dummy* was created to indicate if the incident resolved equals 1 or not resolved = 0. In order to simplify variable *Category*  a dummy variable *Category_Violent_dummy* was assigned value 1 when "ASSAULT", "ROBBERY", "SEX OFFENSES, FORCIBLE", "KIDNAPPING" and value 0 otherwise. New variable *Count_Address_Occur* indicates how many times incidents took place at the same address. 
+
+```{r echo = FALSE}
+#   Convert char variable "Time_Hour" into a numeric variable
+hhmm2dec <- function(x) {
+  xlist <- strsplit(x,split=":")
+  h <- as.numeric(sapply(xlist,"[",1))
+  m <- as.numeric(sapply(xlist,"[",2))
+  xdec <- h+(m/60)
+  return(xdec)
+}
+
+#   Round variable "Time_Hour" without minutes
+sf_crime$Time_Hour <- round(hhmm2dec(sf_crime$Time), 0)
+
+#  Replace Hours = 24 with Hours = 0
+sf_crime$Time_Hour <-replace(sf_crime$Time_Hour, sf_crime$Time_Hour ==24, 0) 
+
+#   Convert "Date" character into class Date
+sf_crime <- transform(sf_crime, Date_time = as.Date(Date, "%m/%d/%Y", tz = "UTC"))
+
+#   Create variables "Date_month", "Date_day", "Date_year"
+sf_crime<-sf_crime %>% mutate(Date_Month = month(Date_time), 
+                              Date_Day   = day(Date_time),
+                              Date_Year  = year(Date_time)) %>%
+                       mutate(Month = month.name[Date_Month])
+                      
+#   Convert "Month" variable into an ordered factor                      
+sf_crime<- sf_crime %>% mutate(Month = factor(Month, levels = month.name))
+
+# Create new dummy variable "Resolution_dummy" (1 = resolved, 0 = unresolved)
+sf_crime$Resolution_dummy <- ifelse(sf_crime$Resolution == "NONE", 0, 1)
+
+# Create a new dummy variable "Category_violent" (1 = violent, 0 = nonviolent)
+sf_crime$Category_Violent_dummy <- ifelse (sf_crime$Category %in% c("ASSAULT", "ROBBERY", "SEX OFFENSES, FORCIBLE", "KIDNAPPING"), 1, 0)  
+
+# Create a new variable "Count_Address_Occur" to count the number of Occurrences of Addresses 
+sf_crime<- sf_crime %>% group_by(Address) %>%
+             mutate(Count_Address_Occur = n(), .groups = 'drop')  %>% ungroup() %>%
+             arrange(desc(Count_Address_Occur))  
+
+# Create a new variable "Count_Category_Occur" to count the number of Occurrences of Categories 
+sf_crime<- sf_crime %>% group_by(Category) %>%
+             mutate(Count_Category_Occur = n(), .groups = 'drop')  %>% ungroup() %>%
+             arrange(desc(Count_Category_Occur))  
+
+
+
+# Reorder columns of sf_crime data
+sf_crime<-sf_crime[, c("PdId",  "IncidntNum", "Category", "Count_Category_Occur", "Category_Violent_dummy", "Descript",  "Resolution","Resolution_dummy", 
+                      "DayOfWeek","Date_Day", "Date_Year", "Date_Month", "Month", "Time_Hour", "Date_time",                                                       
+                      "PdDistrict", "Address", "Count_Address_Occur", "Y",  "X", "Location")]
+
+# Order the data by increasing incident number "PdId"(police department ID)
+sf_crime <- arrange(sf_crime, by = PdId)
+
+```
+
+
+```{r }
+# Summary of the data set
+summary(sf_crime)
+```
+
+*PdId* is a unique identifier (each incident gets its unique number) whereas *IncidntNum* incident number can be assigned to several incidents that happened during the same crime.
+```{r include = FALSE}
+# Find duplicates among "IncidntNum"(incident number)
+duplicated(sf_crime$IncidntNum)
+```
+
+33,801 *IncidntNum* incident numbers have more than one crime category assigned to them.
+```{r warning=FALSE}
+# Total number of duplicates among "IncidntNum"(incident number)
+print(sum(duplicated(sf_crime$IncidntNum)))
+```
+
+```{r warning=FALSE}
+# Find index of the duplicates among "IncidntNum" (incident ID)
+dup <- sf_crime$IncidntNum[duplicated(sf_crime$IncidntNum)]
+
+# Print 10 incident ID's with more than one crime
+head(dup, 10) %>% knitr::kable("pipe")
+```
+The new processed data set contains 21 variables instead of original 13   
+```{r warning=FALSE}
+# Processed sf_crime data
+head(sf_crime, 10) 
+```
+
+```{r  warning=FALSE}
+#   Description of variables in processed sf_crime
+summary(sf_crime)
+```
+
+Number of unique incidents, crime categories, description of crime, addresses, districts and resolution of crime.
+```{r warning=FALSE, echo = FALSE}
+sf_crime %>% summarise(n_ids = n_distinct(PdId), 
+                       n_crime_category = n_distinct(Category),
+                       n_description    = n_distinct(Descript),
+                       n_district       = n_distinct(PdDistrict),
+                       n_resolution     = n_distinct(Resolution),
+                       n_address        = n_distinct(Address), .groups = 'drop') %>% knitr::kable("pipe")
+```
 

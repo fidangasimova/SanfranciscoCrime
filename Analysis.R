@@ -2,12 +2,12 @@
 #   PROJECT II: San Francisco Crime (2016)      # 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 
-setwd("SanfranciscoCrime")
 
 #  #  #  #  #  #  #  #  #  #  #  #  
 #   Install and Load libraries   # 
 #  #  #  #  #  #  #  #  #  #  #  #  
 
+if(!require(tinytex)) install.packages("tinytex", repos = "http://cran.us.r-project.org")
 if(!require(factoextra)) install.packages("factoextra", repos = "http://cran.us.r-project.org")
 if(!require(Hmisc)) install.packages("Hmisc", repos = "http://cran.us.r-project.org")
 if(!require(dslabs)) install.packages("dslabs", repos = "http://cran.us.r-project.org")
@@ -25,6 +25,7 @@ if(!require(ggthemes)) install.packages("ggthemes", repos = "http://cran.us.r-pr
 
 
 #   Load Libraries
+library(tinytex)
 library(factoextra)
 library(ggthemes)
 library(Hmisc)
@@ -44,6 +45,10 @@ library(gridExtra)
 #  #  #  #  #  #  #  #  #  
 #   Load  data          # 
 #  #  #  #  #  #  #  #  #  
+
+# Install tinytex (for running latex) if having not installed
+# tinytex::install_tinytex()
+
 
 # url <- https://www.kaggle.com/roshansharma/sanfranciso-crime-dataset
 sf_crime <- read.csv("sf_crime.csv", header=TRUE, sep = ",", row.names = NULL, quote = "\"")
@@ -76,6 +81,12 @@ sf_crime<-as.data.frame(sf_crime, stringsAsFactors=TRUE) %>%
                                                   "Thursday","Friday", "Saturday", "Sunday")),
                PdDistrict = as.character(PdDistrict))
 
+#   Number of variables
+print(ncol(sf_crime))
+
+#   Number of observations
+print(nrow(sf_crime))
+
 #   Describe sf_crime data set
 describe(sf_crime)
 
@@ -87,12 +98,6 @@ print(head(sf_crime,10))
 
 #   Summary of the data set
 summary(sf_crime)
-
-#   Number of variables
-print(ncol(sf_crime))
-
-#   Number of observations
-print(nrow(sf_crime))
 
 #   Convert char variable "Time_Hour" into a numeric variable
 hhmm2dec <- function(x) {
@@ -128,15 +133,14 @@ sf_crime$Resolution_dummy <- ifelse(sf_crime$Resolution == "NONE", 0, 1)
 sf_crime$Category_Violent_dummy <- ifelse (sf_crime$Category %in% c("ASSAULT", "ROBBERY", "SEX OFFENSES, FORCIBLE", "KIDNAPPING"), 1, 0)  
 
 #   Create a new variable "Count_Address_Occur" to count the number of Occurrences of Addresses 
-sf_crime <- sf_crime %>% group_by(Address) %>%
-            mutate(Count_Address_Occur = n())  %>%
-            arrange(desc(Count_Address_Occur))  
+sf_crime<- sf_crime %>% group_by(Address) %>%
+             mutate(Count_Address_Occur = n(), .groups = 'drop')  %>% ungroup() %>%
+             arrange(desc(Count_Address_Occur))  
 
 #   Create a new variable "Count_Category_Occur" to count the number of Occurrences of Categories 
-sf_crime <- sf_crime %>% group_by(Category) %>%
-  mutate(Count_Category_Occur = n())  %>%
-  arrange(desc(Count_Category_Occur))  
-
+sf_crime<- sf_crime %>% group_by(Category) %>%
+             mutate(Count_Category_Occur = n(), .groups = 'drop')  %>% ungroup() %>%
+             arrange(desc(Count_Category_Occur))  
 
 #   Reorder columns of sf_crime data
 sf_crime<-sf_crime[, c("PdId",  "IncidntNum", "Category", "Count_Category_Occur", "Category_Violent_dummy", "Descript",  "Resolution","Resolution_dummy", 
@@ -153,23 +157,23 @@ View(sf_crime)
 #     Visualization and Descriptive statistics     #  
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  # 
 
-#   Find duplicates among "IncidntNum"(incident ID)
+#   Find duplicates among "IncidntNum"(incident number)
 duplicated(sf_crime$IncidntNum)
 
-#   Total number of duplicates among among "IncidntNum"(incident ID)
+#   Total number of duplicates among among "IncidntNum"(incident number)
 print(sum(duplicated(sf_crime$IncidntNum)))
 
-#   Find index of the duplicates among "IncidntNum" (incident ID)
+#   Find index of the duplicates among "IncidntNum" (incident number)
 dup <- sf_crime$IncidntNum[duplicated(sf_crime$IncidntNum)]
 
-#   Print 20 incident ID's with more than one crime
-head(dup, 20) %>% knitr::kable("simple")
+#   Print 10 incident ID's with more than one crime
+head(dup, 10) %>% knitr::kable("simple")
 
 #   Summary of all variables
 lapply(sf_crime, summary)
 
 #   Processed sf_crime data
-head(sf_crime, 10) %>% knitr::kable("simple")
+head(sf_crime, 5) 
 
 #   Description of variables in processed sf_crime
 str(sf_crime)
@@ -180,7 +184,7 @@ sf_crime %>% summarise(n_incidents = n_distinct(IncidntNum),
                        n_description    = n_distinct(Descript),
                        n_district       = n_distinct(PdDistrict),
                        n_resolution     = n_distinct(Resolution),
-                       n_address        = n_distinct(Address)) %>% knitr::kable()
+                       n_address        = n_distinct(Address), .groups = 'drop') 
 
 
 
@@ -381,7 +385,7 @@ rm(test_index, temp, removed)
   
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
-#   Generate train and test sets, 20% of edx data        # 
+#   Generate train and test sets, 20% of sf_crime data        # 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 
 set.seed(110)
@@ -508,10 +512,10 @@ accuracy_results %>% knitr::kable()
 #    Principal component Analyses (PCA) #  
 #  #  #  #  #  #  #  #  #  #  #  #  #   # 
 
-set.seed(102)
-test_index <- createDataPartition(y = sf_crime$Category_Violent_dummy, times = 1, p = 0.2, list = FALSE)
-test_set<- sf_crime[test_index, ]
-train_set <- sf_crime[-test_index, ]  
+#set.seed(102)
+#test_index <- createDataPartition(y = sf_crime$Category_Violent_dummy, times = 1, p = 0.2, list = FALSE)
+#test_set<- sf_crime[test_index, ]
+#train_set <- sf_crime[-test_index, ]  
 
 
 
@@ -602,6 +606,50 @@ y_hat <- predict(fit, x_test, type = "class")
 confusionMatrix(y_hat, factor(test_set$Category_Violent_dummy))$overall["Accuracy"] %>% knitr::kable("pipe")
 
 
+#   #   #   #   #   #   #   #   #   #   #  #   #   #   #   #   #
+#    Principal component Analyses (PCA) on Validation Data set #  
+#  #  #  #  #  #  #  #  #  #  #  #  #   #   #   #   #   #   #  #
+
+#  Keep only numerical variables in sf_crime_p_pca data set
+sf_crime_p_pca <- sf_crime_p[ , c( "Resolution_dummy",
+                                   "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
+
+#  Keep only numerical variables in validation_pca data set
+validation_pca <- validation[ , c( "Resolution_dummy",
+                                   "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
+
+#  Perform PCA 
+sf_crime.pca <- prcomp(sf_crime_p_pca, center = TRUE)
+
+# Preparation for model fitting: calculate means of Columns 
+col_means<- colMeans(validation_pca)
+
+#  Set x_train equal to PC's
+x_train <- sf_crime.pca$x
+
+y <- factor(sf_crime_p$Category_Violent_dummy)
+
+#  Fit knn with k = 5 model
+fit <- knn3(x_train, y)
+
+#  Transform the test_set
+x_test <- as.matrix(sweep(validation_pca, 2, col_means)) %*% sf_crime.pca$rotation
+
+#  Predict Category 
+y_hat <- predict(fit, x_test, type = "class")
+
+# Print Accuracy of the model on Validation data
+confusionMatrix(y_hat, factor(validation$Category_Violent_dummy))$overall["Accuracy"] %>% knitr::kable("pipe")
+
+
+
+
+
+
+
+
+
+
 #######################################################################
 #  
 #  PCA works best with numerical data, categorical variables were excluded.
@@ -618,7 +666,7 @@ test_set_pca <- test_set[ , c("Category_Violent_dummy", "Resolution_dummy",
                               "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
 
 #  This data is passed to the prcomp() function, assigning your output to sf_crime.pca
-"Count_Category_Occur" "Category_Violent_dummy",
+
 
 #  two arguments, center = TRUE and scale = TRUE. That means the columns are centered. scale only makes sense if variables are measured on the same scale
 #sf_crime.pca <- prcomp(train_set_pca, center = TRUE, scale = TRUE)
@@ -681,7 +729,7 @@ values<-data.frame(x=summary(sf_crime.pca)$importance[3, ], y=names(summary(sf_c
 plot(summary(sf_crime.pca)$importance[3,])
 
 
-boxplot(sf_crime.pca$x[,2] ~ train_set$Category, main = paste("PC", 2), axis.text.x = element_text(angle = 180))
+boxplot(sf_crime.pca$x[,2] ~ train_set$Category[, 1:10], main = paste("PC", 2), axis.text.x = element_text(angle = 180))
 
 
 
