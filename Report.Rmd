@@ -199,7 +199,6 @@ sf_crime <- arrange(sf_crime, by = PdId)
 
 ```
 
-
 ```{r }
 # Summary of the data set
 summary(sf_crime)
@@ -235,7 +234,7 @@ head(sf_crime, 10)
 summary(sf_crime)
 ```
 
-Number of unique incidents, crime categories, description of crime, addresses, districts and resolution of crime.
+Number of unique incidents is 150,500, crime categories are listed. *Description* of crime includes 726 different descriptions. This variable was mot strictly defined and was up to the police officers to chose the description. 16130 different addresses are present in the data set. There are 10 districts (plus one incident without a district) of Police Department and 14 resolution of crime categories.
 ```{r warning=FALSE, echo = FALSE}
 sf_crime %>% summarise(n_ids = n_distinct(PdId), 
                        n_crime_category = n_distinct(Category),
@@ -245,3 +244,50 @@ sf_crime %>% summarise(n_ids = n_distinct(PdId),
                        n_address        = n_distinct(Address), .groups = 'drop') %>% knitr::kable("pipe")
 ```
 
+# Visualisation
+
+##  District 
+The occurrence of crime by 10 different districts shows that by far the most criminal district is Southern district followed by Northern and Mission. Park district shows the least crime occurrence with 8699 incidents for 2016.
+```{r echo=FALSE, message=FALSE}
+#   Number of crime occurrences for each district
+sf_crime %>% group_by(PdDistrict) %>% 
+  summarize(count=n())%>%
+  ggplot(aes(x= reorder(PdDistrict, count), y = count))+
+  geom_bar(stat='identity', alpha=.5, color = "black", fill = "red")+
+  scale_fill_continuous(type = "viridis") +
+  ggtitle("Occurrence of Crime by District") +
+  coord_flip(y=c(0, 30000))+
+  labs(x="District", y="Number of Crime Occurrences")+
+  geom_text(aes(label= count), hjust=-0.1, size=3) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Category 
+The variable *Category* is a factor variable with 39 different levels. 
+```{r}
+# Crime Category
+class(sf_crime$Category)
+nlevels(sf_crime$Category)
+print(unique(sf_crime$Category))
+```
+Following categories are the top 10 of total 39 categories. "LARCENY/THEFT" accounts for the most cases.
+```{r}
+# Top 10 crimes with the greatest number of occurrence
+sf_crime %>% group_by(Category)%>%
+  summarize(count = n()) %>% arrange(desc(count)) %>% 
+  top_n(10, count) %>% knitr::kable()
+```
+
+```{r echo=FALSE, message=FALSE}
+# TOP 10 most frequent Crimes by Category
+sf_crime %>%group_by(Category) %>% 
+  summarize(count=n()) %>% arrange(desc(count)) %>% top_n(10, count) %>%
+  ggplot(aes(x = reorder(Category, -count), y = count)) +
+  geom_bar(stat="identity", alpha=.5, color="black", fill= "blue") + theme_bw()+
+  ggtitle("TOP 10 Crimes by Category") +
+  labs(x = "Category", y = "Number of Occurrences")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Weekdays

@@ -179,7 +179,7 @@ head(sf_crime, 5)
 str(sf_crime)
 
 #   Number of unique incidents, crime categories, description of crime, addresses, districts and resolution
-sf_crime %>% summarise(n_incidents = n_distinct(IncidntNum), 
+sf_crime %>% summarise(n_incidents      = n_distinct(PdId), 
                        n_crime_category = n_distinct(Category),
                        n_description    = n_distinct(Descript),
                        n_district       = n_distinct(PdDistrict),
@@ -249,7 +249,7 @@ sf_crime %>%
   theme(axis.line = element_blank(),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
-        plot.title = element_text(hjust = 0.5, color = "# 666666"))
+        plot.title = element_text(hjust = 0.5, color = "#666666"))
 
 #   Number of Crime Occurrences on Weekdays
 sf_crime  %>% group_by(Month) %>% 
@@ -363,12 +363,12 @@ sf_crime %>% group_by(Address) %>%
 
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
-#   Validation set will be 10% of sf_crime data    #   
+#   Validation set will be 20% of sf_crime data    #   
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 
 #   Code to generate the validation set
 set.seed(342)
-test_index <- createDataPartition(y = sf_crime$Category_Violent_dummy , times = 1, p = 0.1, list = FALSE)
+test_index <- createDataPartition(y = sf_crime$Category_Violent_dummy , times = 1, p = 0.2, list = FALSE)
 sf_crime_p <- sf_crime[-test_index,]
 temp <- sf_crime[test_index,]
 
@@ -621,7 +621,7 @@ validation_pca <- validation[ , c( "Resolution_dummy",
 #  Perform PCA 
 sf_crime.pca <- prcomp(sf_crime_p_pca, center = TRUE)
 
-# Preparation for model fitting: calculate means of Columns 
+# Preparation for model fitting: calculate means of columns 
 col_means<- colMeans(validation_pca)
 
 #  Set x_train equal to PC's
