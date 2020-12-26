@@ -251,7 +251,11 @@ sf_crime %>%
         axis.ticks = element_blank(),
         plot.title = element_text(hjust = 0.5, color = "#666666"))
 
-#   Number of Crime Occurrences on Weekdays
+#  #  #  #  #  #  #  #  
+#   Months    #  
+#  #  #  #  #  #  #  # 
+
+#   Number of Crime Occurrences over Months
 sf_crime  %>% group_by(Month) %>% 
  summarize(count=n()) %>% arrange(desc(count))  %>% 
   ggplot(aes(x = Month, y = count)) +
@@ -282,8 +286,6 @@ sf_crime %>%group_by(Resolution) %>%
   theme(plot.title = element_text(hjust = 0.5))+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-#  2.25 of incidents included more than one crime categories
-
 #   Top 10 Crimes among 2 Resolution categories "NONE" and "BOOKED ARREST"
 sf_crime %>%filter(Category %in% c("LARCENY/THEFT", "OTHER OFFENSES", "NON-CRIMINAL", "ASSAULT",    
                                    "VANDALISM", "VEHICLE THEFT", "WARRANTS", "BURGLARY", 
@@ -301,11 +303,14 @@ sf_crime %>%filter(Category %in% c("LARCENY/THEFT", "OTHER OFFENSES", "NON-CRIMI
   theme(plot.title = element_text(hjust = 0.5))+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+#  #  #  #  #  #  #  #  #  #  
+#   Description            #  
+#  #  #  #  #  #  #  #  #  # 
 
 #   Top 10 of the most frequent crime descriptions in San Francisco
 sf_crime  %>% group_by(Descript) %>% 
-  summarize(count=n()) %>% arrange(desc(count)) %>% 
-  top_n(10, count) %>% knitr::kable()
+             summarize(count=n()) %>% arrange(desc(count)) %>% 
+             top_n(10, count) %>% knitr::kable()
 
 #  #  #  #  #  #  #  #  #  #  
 #    Day Time              #  
@@ -353,9 +358,6 @@ sf_crime %>% group_by(Address) %>%
   ggtitle("") + xlab("Address") +
   ggtitle("Address for Number of  Crime Occurrences") +
   theme_classic()
-
-#  800 Block of BRYANT ST is the Address of a county jail
-
 
 #  #  #  #  #  #   
 #   Analysis   #  

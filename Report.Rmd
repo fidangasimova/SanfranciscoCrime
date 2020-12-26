@@ -105,7 +105,7 @@ sf_crime<-as.data.frame(sf_crime, stringsAsFactors=TRUE) %>%
 ```
 
 ## Data Exploration and Data Processing
-The **sf_cime** data set contains 150,500 observations and 13 variables represented in 13 columns. Each row represents one incident with an ID given by the Police Departmen.
+The **sf_cime** data set contains 150,500 observations and 13 variables represented in 13 columns. Each row represents one incident with an ID given by the Police Department.
 
 ```{r }
 #  Number of variables
@@ -117,7 +117,7 @@ print(ncol(sf_crime))
 print(nrow(sf_crime))
 ```
 
-This data set contains incidents derived from SFPD Crime Incident Reporting system. The data ranges from January to December 2016. The downloaded data set **sf_crime** contains no missing data and consists of following 13 variables: 
+This data set contains incidents derived from SFPD Crime Incident Reporting system. The data ranges from January to December 2016. The downloaded data set **sf_crime** consists of following 13 variables: 
 
 - *PdId* - ID given by Police Department District
 - *IncidntNum* - ID of th incident
@@ -133,7 +133,7 @@ This data set contains incidents derived from SFPD Crime Incident Reporting syst
 - *Y* - Latitude
 - *Location* -  Longitude and Latitude combined in one variable
 
-**sf_crime** contains no missing data.
+The data set **sf_crime** contains no missing data.
 ```{r }
 # Check missing values
 sum(is.na(sf_crime))
@@ -141,7 +141,7 @@ sum(is.na(sf_crime))
 
 In order to visualize and analyze the data set several new variables were created through transformation of existing variables.
 
-The variable *Date* was transformed and split into *Date_Month*, *Date_Day*, *Date_Year*. Variable *Time* was converted into a numerical variable *Time_Hour*. *Resolution_dummy* was created to indicate if the incident resolved equals 1 or not resolved = 0. In order to simplify variable *Category*  a dummy variable *Category_Violent_dummy* was assigned value 1 when "ASSAULT", "ROBBERY", "SEX OFFENSES, FORCIBLE", "KIDNAPPING" and value 0 otherwise. New variable *Count_Address_Occur* indicates how many times incidents took place at the same address. 
+The variable *Date* was transformed and split into *Date_Month*, *Date_Day*, *Date_Year*. Variable *Time* was converted into a numerical variable *Time_Hour* that shows time of the day when crime took place. *Resolution_dummy* was created to indicate if the incident was resolved which equals 1 or not resolved = 0. In order to simplify variable *Category*  a dummy variable *Category_Violent_dummy* was assigned value 1 when "ASSAULT", "ROBBERY", "SEX OFFENSES, FORCIBLE", "KIDNAPPING" and value 0 otherwise. New variable *Count_Address_Occur* indicates how many times incidents took place at the same address. 
 
 ```{r echo = FALSE}
 #   Convert char variable "Time_Hour" into a numeric variable
@@ -210,7 +210,7 @@ summary(sf_crime)
 duplicated(sf_crime$IncidntNum)
 ```
 
-33,801 *IncidntNum* incident numbers have more than one crime category assigned to them.
+33,801 *IncidntNum* incident numbers have more than one crime category assigned to them. That means that 23% of all incidents happened in year 2016 involved more than one crime. 
 ```{r warning=FALSE}
 # Total number of duplicates among "IncidntNum"(incident number)
 print(sum(duplicated(sf_crime$IncidntNum)))
@@ -224,7 +224,7 @@ dup <- sf_crime$IncidntNum[duplicated(sf_crime$IncidntNum)]
 head(dup, 10) %>% knitr::kable("pipe")
 ```
 The new processed data set contains 21 variables instead of original 13   
-```{r warning=FALSE}
+```{r warning=FALSE, include = FALSE}
 # Processed sf_crime data
 head(sf_crime, 10) 
 ```
@@ -248,6 +248,7 @@ sf_crime %>% summarise(n_ids = n_distinct(PdId),
 
 ##  District 
 The occurrence of crime by 10 different districts shows that by far the most criminal district is Southern district followed by Northern and Mission. Park district shows the least crime occurrence with 8699 incidents for 2016.
+
 ```{r echo=FALSE, message=FALSE}
 #   Number of crime occurrences for each district
 sf_crime %>% group_by(PdDistrict) %>% 
@@ -264,21 +265,23 @@ sf_crime %>% group_by(PdDistrict) %>%
 
 ## Category 
 The variable *Category* is a factor variable with 39 different levels. 
+
 ```{r}
 # Crime Category
 class(sf_crime$Category)
 nlevels(sf_crime$Category)
 print(unique(sf_crime$Category))
 ```
-Following categories are the top 10 of total 39 categories. "LARCENY/THEFT" accounts for the most cases.
-```{r}
+Following categories are the top 10 of total 39 categories. "LARCENY/THEFT" accounts for the most cases."MISSING PERSON" is the smallest category in the top ten of crime categories.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Top 10 crimes with the greatest number of occurrence
 sf_crime %>% group_by(Category)%>%
-  summarize(count = n()) %>% arrange(desc(count)) %>% 
+  summarize(count = n()) %>% ungroup() %>% arrange(desc(count)) %>% 
   top_n(10, count) %>% knitr::kable()
 ```
 
-```{r echo=FALSE, message=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 # TOP 10 most frequent Crimes by Category
 sf_crime %>%group_by(Category) %>% 
   summarize(count=n()) %>% arrange(desc(count)) %>% top_n(10, count) %>%
@@ -291,3 +294,149 @@ sf_crime %>%group_by(Category) %>%
 ```
 
 ## Weekdays
+
+The following pie-chart shows that crime occurrence over the week days was almost evenly distributed with Friday as a day most crime occurrence (only a small difference to other days). 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Pie-Chart Crime Frequency on Weekdays
+sf_crime %>% 
+  group_by(DayOfWeek) %>% 
+  summarize(count=n()) %>%
+  mutate(percent = count /sum(count) *100.0) %>%
+  ggplot( aes(x="", y = - percent, fill = DayOfWeek)) +
+  geom_bar(width = 1, stat = "identity", color = "black") + coord_polar(theta = "y")+
+  geom_text(aes(label = paste0(round(percent), "%", sep = "\n", DayOfWeek)), 
+            position = position_stack(vjust = 0.5)) +
+  labs(x = NULL, y = NULL, fill = NULL, 
+       title = "Crime Occurance on Weekdays in Percentage") +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  scale_fill_manual(values = c("orange", "red", "yellow", "blue",  "green", "grey", "purple")) +
+  theme_classic() +
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5, color = "#666666"))
+```
+
+## Daytime
+The dat time plot shows that most crime occurred around 18:00 (6pm) with N = 11280 cases.According to the data for 2016 the safest hour was 5am in the morning with N=1520 incidents.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Occurrence of crime during a day Time_Hour
+sf_crime %>%group_by(Time_Hour) %>% 
+  summarize(count=n(), count_min = min(count), count_max = max(count)) %>%
+  ggplot(aes(x = Time_Hour, y = count)) +
+  geom_bar(stat="identity", alpha=.5, color="black", fill= "green") + theme_bw()+
+  geom_vline(xintercept = 5, colour = "red") +
+  geom_vline(xintercept = 18, colour = "red") +
+  ggtitle("Hour of the Day") +
+  labs(x = "Hour", y = "Number of Occurrences")+
+  scale_x_continuous(breaks=seq(0, 23, by= 1))+
+  geom_text(aes(label= count),vjust = -0.5, position = position_dodge(width = .60), hjust=0.5, size = 2, inherit.aes = TRUE) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Crime Category "LARCENY/THEFT" remains the most committed crime throughout the day. The number of "LARCENY/THEFT" increases in the evening hours (starting in the afternoon).
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Top 10 crime category over day time
+sf_crime%>% group_by(Time_Hour, Category) %>% 
+  summarise(count = n()) %>%
+  filter(Category %in% c("LARCENY/THEFT", "OTHER OFFENSES", "NON-CRIMINAL", "ASSAULT",    
+                         "VANDALISM", "VEHICLE THEFT", "WARRANTS", "BURGLARY", 
+                         "SUSPICIOUS OCC", "MISSING PERSON")) %>%
+  ggplot(aes(x = Time_Hour, y = count)) +
+  geom_line(aes(color=Category)) +
+  ggtitle("Hour of the Day") +
+  scale_x_continuous(breaks=seq(0, 23, by= 1))+
+  scale_fill_brewer(palette = "Paired")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Months
+The crime distribution among the months of 2016 also shows an even distribution with October with max number of crime incidents.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Number of Crime Occurrences on Weekdays
+sf_crime  %>% group_by(Month) %>% 
+ summarize(count=n()) %>% arrange(desc(count))  %>% 
+  ggplot(aes(x = Month, y = count)) +
+  geom_bar(stat="identity", alpha=.5, color="red", fill= "purple", position = 'dodge') + theme_bw()+
+  scale_fill_continuous(type = "viridis") +
+  ggtitle("Crimes on Weekdays") +
+  labs(title = "Crime over Months",
+           x = "Month", 
+           y = "Number of Occurrences") +
+  geom_text(aes(label= count),vjust = -0.5, position = position_dodge(width = .70), hjust=0.5, size = 2, inherit.aes = TRUE) + 
+  scale_y_continuous(breaks=seq(0, 15000, by= 5000)) +
+  theme_bw()  + 
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Resolution of Crime
+
+An important variable in the crime statistics is a crime resolution variable. And as we can see most of the cases were not resolved. The second biggest category within the variable **Resolution** is "ARREST, BOOKED".
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Top 10 of most common crime resolutions
+sf_crime %>%group_by(Resolution) %>% 
+  summarize(count=n()) %>% arrange(desc(count)) %>% top_n(10, count) %>%
+  ggplot(aes(x = reorder(Resolution, -count), y = count)) +
+  geom_bar(stat="identity", alpha=.5, color="black", fill= "green") + theme_bw()+
+  ggtitle("TOP 10 Crime Resolutions") +
+  labs(x = "Resolution Category",
+       y = "Number of Occurrences")+
+  geom_text(aes(label= count),vjust = -0.5, position = position_dodge(width = .70),   hjust=0.5, size = 1, inherit.aes = TRUE) + 
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Among the top ten crimes category "ARREST, BOOKED" accounts most for "OTHER OFFENSES" and "ASSAULT", while category "NONE" resolutions is highest for "LARCENY/THEFT".
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Top 10 Crimes among 2 Resolution categories "NONE" and "BOOKED ARREST"
+sf_crime %>%filter(Category %in% c("LARCENY/THEFT", "OTHER OFFENSES", "NON-CRIMINAL", "ASSAULT",    
+                                   "VANDALISM", "VEHICLE THEFT", "WARRANTS", "BURGLARY", 
+                                   "SUSPICIOUS OCC", "MISSING PERSON"), Resolution %in% c("NONE", "ARREST, BOOKED")) %>%
+  group_by(Category) %>% 
+  mutate(count=n()) %>% arrange(desc(count)) %>%
+  ggplot(aes(x = reorder(Category, -count), y = count)) +
+  geom_bar(stat="identity", alpha=.5, color = "blue", fill = "grey" ) + theme_bw()+
+  scale_fill_continuous(type = "viridis") +
+  ggtitle("TOP 10 Crimes by Category") +
+  facet_wrap(~Resolution, ) +
+  ggtitle("TOP 10 Crime Resolutions") +
+  labs(x = "Resolution Category", y = "Number of Occurrences")+
+  # geom_text(aes(label= count),vjust = -0.5, position = position_dodge(width = .60), hjust=0.5, size = 2, inherit.aes = TRUE) + 
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Description
+The variable *Description* contains 726 different non predefined descriptions of crime and therefor can not be taken as a reliable source into the analysis.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Top 10 of the most frequent crime descriptions in San Francisco
+sf_crime  %>% group_by(Descript) %>% 
+             summarize(count=n()) %>% ungroup() %>% arrange(desc(count)) %>% 
+             top_n(10, count) %>% knitr::kable()
+```
+
+## Address
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Top 20 of the most frequent addresses in San Francisco
+sf_crime  %>% group_by(Address) %>% 
+  summarize(count=n()) %>% arrange(desc(count)) %>% 
+  top_n(20, count) %>%knitr::kable()
+```
+Number one address that occurred 3561 times in 2016 is 800 Block of BRYANT ST and is the Address of a county jail.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Most common Address
+sf_crime %>% group_by(Address) %>%
+  summarize(count = n())  %>% arrange(desc(count)) %>% top_n(20) %>%
+  ggplot(aes(reorder(Address, count), count, fill = count)) +
+  geom_bar(stat = "identity") + coord_flip() + scale_fill_distiller(palette = "PuBuGn") +
+  ggtitle("") + xlab("Address") +
+  ggtitle("Address for Number of  Crime Occurrences") +
+  theme_classic()
+```
+
