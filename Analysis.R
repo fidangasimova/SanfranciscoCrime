@@ -363,6 +363,11 @@ sf_crime %>% group_by(Address) %>%
 #   Analysis   #  
 #  #  #  #  #  #  
 
+#   Correlation between numerical variables
+cor.data <- cor(sf_crime[, c("Count_Category_Occur","Resolution_dummy","Category_Violent_dummy", 
+                             "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y")]) %>% as.matrix
+corrplot(cor.data, order = "hclust", addrect = 2, type = "lower")
+
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 #   Validation set will be 20% of sf_crime data    #   
@@ -401,12 +406,6 @@ test_set <- test_set %>%
         semi_join(train_set, by = "IncidntNum") 
 
 
-#  As the correlation shows predictors are not highly correlated, so PCA analysis would not be appropriate method
-#   Correlation between numeric class variables
-cor.data <- cor(sf_crime[, c("Count_Category_Occur","Resolution_dummy","Category_Violent_dummy", 
-                             "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y")]) %>% as.matrix
-corrplot(cor.data, order = "hclust", addrect = 2, type = "lower")
-
 # # # # # # # # # # # # # # # # # # # # # # # # 
 #   Logistic regression with one predictor    # 
 # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -428,6 +427,10 @@ test_set$Category_Violent_dummy<-test_set$Category_Violent_dummy %>%factor()
 nlevels(y_hat_glm )
 nlevels(test_set$Category_Violent_dummy)
 
+#   Show byClass to check the sensitivity, specificity 
+confusionMatrix(y_hat_glm, test_set$Category_Violent_dummy)$byClass %>% knitr::kable()
+
+
 #   Show accuracy of the model
 accuracy_1<- confusionMatrix(y_hat_glm, test_set$Category_Violent_dummy)$overall["Accuracy"]
 accuracy_results <- data_frame(Model = "Logistic regression with one predictor", Accuracy = accuracy_1)
@@ -439,8 +442,8 @@ accuracy_results %>% knitr::kable()
 #    Logistic regression with more than one predictor    #  
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  # 
 
-#   Fit the model
-fit_glm_mp <- glm(Category_Violent_dummy ~   Resolution_dummy + Time_Hour + Date_Day + Date_Month + X + Y, family = "binomial",
+fit_glm_mp <- glm(Category_Violent_dummy ~   Resolution_dummy + Time_Hour + Date_Day +
+                  Date_Month + Count_Address_Occur +X+Y, family = "binomial",
                   data = train_set)
 
 summary(fit_glm_mp)
@@ -466,20 +469,19 @@ confusionMatrix(y_hat_glm_mp, test_set$Category_Violent_dummy)$byClass %>% knitr
 accuracy_2<- confusionMatrix(y_hat_glm_mp, test_set$Category_Violent_dummy)$overall["Accuracy"]
 accuracy_results <- bind_rows(accuracy_results,
                               data_frame(Model = "Logistic regression with more than one predictor", Accuracy = accuracy_2))
+
 #   Print results
 accuracy_results %>% knitr::kable()
 
-#   Because specificity and sensitivity are rates, it is more appropriate to compute the harmonic average.
-#   In fact, the F1-score, a widely used one-number summary, is the harmonic average of precision and recall p. 509
-F_meas(y_hat_glm_mp, test_set$Category_Violent_dummy)%>% knitr::kable()
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #   Final Logistic regression with more than one predictor
 #   on Validation (test) and sf_crime_p
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-fit_glm_mp_v <- glm(Category_Violent_dummy ~ Resolution_dummy + Time_Hour + Date_Day + Date_Month + X + Y, family = "binomial",
-                  data=sf_crime_p)
+fit_glm_mp_v <- glm(Category_Violent_dummy ~ Resolution_dummy + Time_Hour + Date_Day +
+                    Date_Month + X + Y, family = "binomial",
+                    data=sf_crime_p)
 
 summary(fit_glm_mp_v)
 
@@ -504,22 +506,15 @@ confusionMatrix(y_hat_glm_mp_v, validation$Category_Violent_dummy)$byClass %>% k
 accuracy_final<- confusionMatrix(y_hat_glm_mp_v, validation$Category_Violent_dummy)$overall["Accuracy"]
 accuracy_results <- bind_rows(accuracy_results,
                               data_frame(Model = "Final Logistic regression with more than one predictor", Accuracy = accuracy_final))
+
+
 #   Print results
 accuracy_results %>% knitr::kable()
-
-
 
 
 #   #   #   #   #   #   #   #   #   #   #
 #    Principal component Analyses (PCA) #  
 #  #  #  #  #  #  #  #  #  #  #  #  #   # 
-
-#set.seed(102)
-#test_index <- createDataPartition(y = sf_crime$Category_Violent_dummy, times = 1, p = 0.2, list = FALSE)
-#test_set<- sf_crime[test_index, ]
-#train_set <- sf_crime[-test_index, ]  
-
-
 
 #  PCA works best with numerical data, categorical variables were excluded.
 #  You are left with a matrix of 6 columns and 8631 rows

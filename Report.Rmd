@@ -105,7 +105,7 @@ sf_crime<-as.data.frame(sf_crime, stringsAsFactors=TRUE) %>%
 ```
 
 ## Data Exploration and Data Processing
-The **sf_cime** data set contains 150,500 observations and 13 variables represented in 13 columns. Each row represents one incident with an ID given by the Police Department.
+The **sf_cime** data set contains 150,500 observations and 13 variables represented in 13 columns. Each row represents one incident with an ID given by the Police Department (*PdId*).
 
 ```{r }
 #  Number of variables
@@ -210,11 +210,11 @@ summary(sf_crime)
 duplicated(sf_crime$IncidntNum)
 ```
 
-33,801 *IncidntNum* incident numbers have more than one crime category assigned to them. That means that 23% of all incidents happened in year 2016 involved more than one crime. 
 ```{r warning=FALSE}
 # Total number of duplicates among "IncidntNum"(incident number)
 print(sum(duplicated(sf_crime$IncidntNum)))
 ```
+33801 *IncidntNum* incident numbers have more than one crime category assigned to them. That means that 23% of all incidents happened in year 2016 involved more than one crime. 
 
 ```{r warning=FALSE}
 # Find index of the duplicates among "IncidntNum" (incident ID)
@@ -223,6 +223,7 @@ dup <- sf_crime$IncidntNum[duplicated(sf_crime$IncidntNum)]
 # Print 10 incident ID's with more than one crime
 head(dup, 10) %>% knitr::kable("pipe")
 ```
+
 The new processed data set contains 21 variables instead of original 13   
 ```{r warning=FALSE, include = FALSE}
 # Processed sf_crime data
@@ -241,10 +242,10 @@ sf_crime %>% summarise(n_ids = n_distinct(PdId),
                        n_description    = n_distinct(Descript),
                        n_district       = n_distinct(PdDistrict),
                        n_resolution     = n_distinct(Resolution),
-                       n_address        = n_distinct(Address), .groups = 'drop') %>% knitr::kable("pipe")
+                       n_address        = n_distinct(Address), .groups = 'drop')  %>% ungroup() %>% knitr::kable("pipe")
 ```
 
-# Visualisation
+# Visualization
 
 ##  District 
 The occurrence of crime by 10 different districts shows that by far the most criminal district is Southern district followed by Northern and Mission. Park district shows the least crime occurrence with 8699 incidents for 2016.
@@ -272,19 +273,20 @@ class(sf_crime$Category)
 nlevels(sf_crime$Category)
 print(unique(sf_crime$Category))
 ```
+
 Following categories are the top 10 of total 39 categories. "LARCENY/THEFT" accounts for the most cases."MISSING PERSON" is the smallest category in the top ten of crime categories.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Top 10 crimes with the greatest number of occurrence
 sf_crime %>% group_by(Category)%>%
-  summarize(count = n()) %>% ungroup() %>% arrange(desc(count)) %>% 
+  summarize(count = n(), .groups = 'drop')  %>% ungroup() %>% arrange(desc(count)) %>% 
   top_n(10, count) %>% knitr::kable()
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # TOP 10 most frequent Crimes by Category
 sf_crime %>%group_by(Category) %>% 
-  summarize(count=n()) %>% arrange(desc(count)) %>% top_n(10, count) %>%
+  summarize(count=n(), .groups = 'drop')  %>% ungroup() %>% arrange(desc(count)) %>% top_n(10, count) %>%
   ggplot(aes(x = reorder(Category, -count), y = count)) +
   geom_bar(stat="identity", alpha=.5, color="black", fill= "blue") + theme_bw()+
   ggtitle("TOP 10 Crimes by Category") +
@@ -294,14 +296,13 @@ sf_crime %>%group_by(Category) %>%
 ```
 
 ## Weekdays
-
 The following pie-chart shows that crime occurrence over the week days was almost evenly distributed with Friday as a day most crime occurrence (only a small difference to other days). 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Pie-Chart Crime Frequency on Weekdays
 sf_crime %>% 
   group_by(DayOfWeek) %>% 
-  summarize(count=n()) %>%
+  summarize(count=n(), .groups = 'drop')  %>% ungroup() %>%
   mutate(percent = count /sum(count) *100.0) %>%
   ggplot( aes(x="", y = - percent, fill = DayOfWeek)) +
   geom_bar(width = 1, stat = "identity", color = "black") + coord_polar(theta = "y")+
@@ -324,7 +325,7 @@ The dat time plot shows that most crime occurred around 18:00 (6pm) with N = 112
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Occurrence of crime during a day Time_Hour
 sf_crime %>%group_by(Time_Hour) %>% 
-  summarize(count=n(), count_min = min(count), count_max = max(count)) %>%
+  summarize(count=n(), count_min = min(count), count_max = max(count), .groups = 'drop')  %>% ungroup() %>%
   ggplot(aes(x = Time_Hour, y = count)) +
   geom_bar(stat="identity", alpha=.5, color="black", fill= "green") + theme_bw()+
   geom_vline(xintercept = 5, colour = "red") +
@@ -341,7 +342,7 @@ Crime Category "LARCENY/THEFT" remains the most committed crime throughout the d
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Top 10 crime category over day time
 sf_crime%>% group_by(Time_Hour, Category) %>% 
-  summarise(count = n()) %>%
+  summarise(count = n(), .groups = 'drop')  %>% ungroup() %>%
   filter(Category %in% c("LARCENY/THEFT", "OTHER OFFENSES", "NON-CRIMINAL", "ASSAULT",    
                          "VANDALISM", "VEHICLE THEFT", "WARRANTS", "BURGLARY", 
                          "SUSPICIOUS OCC", "MISSING PERSON")) %>%
@@ -359,7 +360,7 @@ The crime distribution among the months of 2016 also shows an even distribution 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Number of Crime Occurrences on Weekdays
 sf_crime  %>% group_by(Month) %>% 
- summarize(count=n()) %>% arrange(desc(count))  %>% 
+ summarize(count=n(), .groups = 'drop')  %>% ungroup() %>% arrange(desc(count))  %>% 
   ggplot(aes(x = Month, y = count)) +
   geom_bar(stat="identity", alpha=.5, color="red", fill= "purple", position = 'dodge') + theme_bw()+
   scale_fill_continuous(type = "viridis") +
@@ -375,7 +376,6 @@ sf_crime  %>% group_by(Month) %>%
 ```
 
 ## Resolution of Crime
-
 An important variable in the crime statistics is a crime resolution variable. And as we can see most of the cases were not resolved. The second biggest category within the variable **Resolution** is "ARREST, BOOKED".
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -413,22 +413,26 @@ sf_crime %>%filter(Category %in% c("LARCENY/THEFT", "OTHER OFFENSES", "NON-CRIMI
 ```
 
 ## Description
-The variable *Description* contains 726 different non predefined descriptions of crime and therefor can not be taken as a reliable source into the analysis.
+The variable *Description* contains 726 different non predefined descriptions of crime and therefor can not be taken as a reliable source into the analysis. Following table shows to 10 of used descriptions to describe crime incidents.
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Top 10 of the most frequent crime descriptions in San Francisco
 sf_crime  %>% group_by(Descript) %>% 
-             summarize(count=n()) %>% ungroup() %>% arrange(desc(count)) %>% 
+             summarize(count=n(), .groups = 'drop')  %>% ungroup() %>% arrange(desc(count)) %>% 
              top_n(10, count) %>% knitr::kable()
 ```
 
 ## Address
+Some addresses appeared more often in the data than others. There are 16130 different addresses in the data set. Following visualization shows top 20 most frequent addresses in the crime data for 2016.
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Top 20 of the most frequent addresses in San Francisco
 sf_crime  %>% group_by(Address) %>% 
-  summarize(count=n()) %>% arrange(desc(count)) %>% 
-  top_n(20, count) %>%knitr::kable()
+  summarize(count=n(), .groups = 'drop')  %>% ungroup() %>% arrange(desc(count)) %>% 
+  top_n(20, count) %>% knitr::kable()
 ```
-Number one address that occurred 3561 times in 2016 is 800 Block of BRYANT ST and is the Address of a county jail.
+
+Number one address in the top ten that occurred 3561 times in 2016 is "800 Block of BRYANT ST" which is the address of a county jail.
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Most common Address
 sf_crime %>% group_by(Address) %>%
@@ -436,7 +440,347 @@ sf_crime %>% group_by(Address) %>%
   ggplot(aes(reorder(Address, count), count, fill = count)) +
   geom_bar(stat = "identity") + coord_flip() + scale_fill_distiller(palette = "PuBuGn") +
   ggtitle("") + xlab("Address") +
-  ggtitle("Address for Number of  Crime Occurrences") +
+  ggtitle("Address for Number of Crime Occurrences") +
   theme_classic()
 ```
 
+## Method
+The goal of the analysis id to predict the category of crime by using predictors considered in the Visualization part. First take a look at the correlation between the variables.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Correlation between numerical variables
+cor.data <- cor(sf_crime[, c("Resolution_dummy","Category_Violent_dummy", 
+                             "Count_Address_Occur", "Time_Hour","Date_Day",
+                             "Date_Month", "X", "Y")]) %>% as.matrix
+corrplot(cor.data, order = "hclust", addrect = 2, type = "lower")
+
+
+```
+
+In order to predict categorical variable *Logistic Regression*[^1] will be applied. As an outcome of the prediction *Category_Violent_dummy* with assigned values of 0 (non-violent) and 1 (violent) will be used. *Logistic Regression* is a subset of the *Generalized linear Models* and converts probability to log odds. (More details are given in 31.1 Chapter of https://rafalab.github.io/dsbook/).
+
+Accuracy was used to judge the performance of the prediction of a categorical variable. For the evaluation of the algorithm a **validation** data set was generated. The **sf_crime** data set was partitioned into **validation** and **sf_crime_p**.  The **validation** data set was only used in the final step to test the final algorithm and contained only 20% of **sf_crime** data. The final model with the highest accuracy was chosen to be applied to the **sf_crime_p** data to calculate the parameters of the model. For the final step, this model was evaluated by calculating the accuracy of the **validation** set. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Code to generate the validation set
+set.seed(342)
+test_index <- createDataPartition(y = sf_crime$Category_Violent_dummy , times = 1, p = 0.2, list = FALSE)
+sf_crime_p <- sf_crime[-test_index,]
+temp <- sf_crime[test_index,]
+
+#   Make sure "IncidntNum" in validation set are also in sf_crime_p set
+validation <- temp %>% 
+          semi_join(sf_crime_p, by = "IncidntNum")
+  
+# Add rows removed from validation set back into sf_crime_p set
+removed <- anti_join(temp, validation)
+sf_crime_p <- rbind(sf_crime_p, removed)
+
+#  Remove redundant columns
+rm(test_index, temp, removed)  
+```  
+
+In order to train and test the algorithm, **sf_crime_p** was divided into train and test set, where test_set contained only 20% of the **sf_crime_p** data.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+#   Generate train and test sets, 20% of sf_crime_p data   
+set.seed(110)
+test_index <- createDataPartition(y = sf_crime_p$Category_Violent_dummy, times = 1, p = 0.2, list = FALSE)
+test_set <- sf_crime_p[test_index, ]
+train_set <- sf_crime_p[-test_index, ]  
+
+#   To make sure we don’t include incident Ids in the test set that do not appear in the training set, 
+#   remove these entries using the semi_join function:
+test_set <- test_set %>% 
+        semi_join(train_set, by = "IncidntNum")
+```
+
+#  Logistic regression with one predictor   
+Only numerical variables were use as predictors in the *Logistic Regression* model. First only one predictor *Resolution_dummy*, a dummy variable with values of 1 for resolved crime and value of 0 for non-resolved crime. 
+$glm()$ function with specified $family = "binomial"$ is used to fit the *Logistic Regression* model.
+
+```{r  warning=FALSE}
+# Fit Logistic regression with one predictor
+fit_glm <- glm(Category_Violent_dummy ~ Resolution_dummy,
+               data=train_set, family = "binomial")
+
+# Predict "Category_Violent_dummy"
+p_hat_glm <- predict(fit_glm, test_set, type = "response")
+```
+
+The decision rule follows, predict violent Category if prediction $p_hat_glm > 0.15$, otherwise $0$.
+```{r  warning=FALSE}
+# Set values to 1 (violent) if > 0.15 and otherwise 0 (non-violent)
+y_hat_glm <- ifelse(p_hat_glm > 0.15, 1, 0) 
+```
+
+
+```{r  warning=FALSE}
+#   Set factors to the same factor level
+y_hat_glm<-y_hat_glm %>%factor()
+test_set$Category_Violent_dummy<-test_set$Category_Violent_dummy %>%factor()
+```
+
+```{r warning= FALSE, include = FALSE}
+#   Check the factor levels
+nlevels(y_hat_glm )
+nlevels(test_set$Category_Violent_dummy)
+```
+
+Overall accuracy is low and is below the guessing rate. The proportion of violent crime is much lower than a non-violent crime. To check *sensitivity* and *specificity*.
+
+```{r  warning=FALSE}
+#  Show byClass to check sensitivity, specificity 
+confusionMatrix(y_hat_glm, test_set$Category_Violent_dummy)$byClass %>% knitr::kable()
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Show accuracy of the model
+accuracy_1<- confusionMatrix(y_hat_glm, test_set$Category_Violent_dummy)$overall["Accuracy"]
+accuracy_results <- data_frame(Model = "Logistic regression with one predictor", Accuracy = accuracy_1)
+```
+
+```{r}
+# Print results
+accuracy_results %>% knitr::kable()
+```
+
+
+The result shows the Accuracy is below the guessing rate, next model will include following predictors:
+- *Resolution_dummy*- shows if crime was resolved
+- *Time_Hour* - time of the day 
+- *Date_Day* - day ot he month
+- *Date_Month* - which month of the year
+- *Count_Address_Occur* - frequency how often crime took place
+- *X* and *Y* -Location of the crime
+
+
+# Logistic regression with more than one predictor 
+
+```{r  warning=FALSE}
+fit_glm_mp <- glm(Category_Violent_dummy ~ Resolution_dummy + Time_Hour + Date_Day + 
+                  Date_Month + Count_Address_Occur + X + Y,
+                  family = "binomial", data = train_set)
+
+#   Predict "Category_Violent_dummy"
+p_hat_glm_mp <- predict(fit_glm_mp, test_set, type = "response")
+
+#  Set values to 1 (violent) if > 0.15 and otherwise 0 (non-violent)
+y_hat_glm_mp <- ifelse(p_hat_glm_mp > 0.15, 1, 0) 
+
+#   Set factors to the same factor level
+y_hat_glm_mp <- y_hat_glm_mp %>% factor()
+test_set$Category_Violent_dummy <- test_set$Category_Violent_dummy %>% factor()
+```
+
+```{r warning= FALSE, include = FALSE}
+# Check the factor levels
+nlevels(y_hat_glm_mp )
+nlevels(test_set$Category_Violent_dummy)
+```
+
+```{r  warning=FALSE}
+#  Show byClass to check sensitivity, specificity 
+confusionMatrix(y_hat_glm_mp, test_set$Category_Violent_dummy)$byClass %>% knitr::kable()
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Show accuracy of the model
+accuracy_2<- confusionMatrix(y_hat_glm_mp, test_set$Category_Violent_dummy)$overall["Accuracy"]
+accuracy_results <- bind_rows(accuracy_results,
+                              data_frame(Model = "Logistic regression with more than one predictor",
+                                         Accuracy = accuracy_2))
+
+```
+
+
+```{r  warning=FALSE}
+# Print results
+accuracy_results %>% knitr::kable()
+```
+
+Since the result has improved and is above the guessing rate, this model will be applied on the **validation** and **sf_crime_p** data.
+
+# Final Logistic regression with more than one predictor on Validation (test) and sf_crime_p
+
+```{r  warning=FALSE}
+fit_glm_mp_v <- glm(Category_Violent_dummy ~ Resolution_dummy + Time_Hour + Date_Day + 
+                    Date_Month + Count_Address_Occur + X + Y,
+                    family = "binomial", data=sf_crime_p)
+
+# Predict "Category_Violent_dummy"
+p_hat_glm_mp_v <- predict(fit_glm_mp_v, validation, type = "response")
+
+# Set values to 1 (violent) if > 0.15 and otherwise 0 (non-violent)
+y_hat_glm_mp_v <- ifelse(p_hat_glm_mp_v > 0.15, 1, 0) 
+
+# Set factors to the same factor level
+y_hat_glm_mp_v <- y_hat_glm_mp_v %>% factor()
+validation$Category_Violent_dummy <- validation$Category_Violent_dummy %>% factor()
+```
+
+
+```{r warning= FALSE, include = FALSE}
+# Check the factor levels
+nlevels(y_hat_glm_mp_v )
+nlevels(validation$Category_Violent_dummy)
+```
+
+```{r  warning=FALSE}
+# Show byClass to check the sensitivity, specificity 
+confusionMatrix(y_hat_glm_mp_v, validation$Category_Violent_dummy)$byClass %>% knitr::kable()
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#   Show accuracy of the model
+accuracy_final <- confusionMatrix(y_hat_glm_mp_v, validation$Category_Violent_dummy)$overall["Accuracy"]
+accuracy_results <- bind_rows(accuracy_results,
+                              data_frame(Model = "Final Logistic regression with more than one predictor",
+                                         Accuracy = accuracy_final))
+```
+
+
+
+```{r  warning=FALSE}
+#   Print results
+accuracy_results %>% knitr::kable()
+```
+
+
+# Principal component Analyses (PCA) #  
+Another method will be applied to improve the results of prediction. PCA is is one of ML methods to reduce high-dimensionality of the data set in case of many correlated predictors. PCA works best with numerical data all categorical variables are excluded from predictors..
+
+```{r message=FALSE, warning=FALSE}
+train_set_pca <- train_set[ , c( "Resolution_dummy",
+                                "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
+
+test_set_pca <- test_set[ , c(  "Resolution_dummy", 
+                               "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
+```
+
+This data is passed to the $prcomp()$ function assigning the output to sf_crime.pca.  $prcomp()$ provides linear orthogonal transformation of the passed data.Argument $center = TRUE$ means the columns are centered. Argument $scale = TRUE$ only makes only sense if variables are measured on the same scale, which is not the case.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+sf_crime.pca <- prcomp(train_set_pca, center = TRUE)
+
+
+#   The center and scale components correspond to the means and standard deviations of the variables
+#   Mean value
+sf_crime.pca$center
+
+
+# 6 principal components were obtained. Each of these explains a percentage of the total variation in the dataset. That is to say: PC1 explains 21% of the total variance,
+#  PC2 explains 17% of the variance. So, by knowing the position of a sample in relation to just PC1 and PC2, you can get a very accurate view on where it stands in relation to other samples, as just PC1, PC2 and PC3 can explain 55%
+#  of the variance.
+
+#   Summary of the output
+summary(sf_crime.pca)
+summary(sf_crime.pca)$importance[,1:7]
+
+
+#   PCA returns 3 parameters
+#   PC components
+sf_crime.pca$x
+head(sf_crime.pca$x)
+
+#  Standard Deviation of the Components
+sf_crime.pca$sdev
+
+#   Rotation parameter. The rotation matrix provides the principal component loadings;
+#   each column of sf_crime.pca$rotation contains the corresponding principal component 
+sf_crime.pca$rotation
+head(sf_crime.pca$rotation)
+
+#   Calculate the Variation
+sf_crime.pca.var <- sf_crime.pca$sdev^2
+
+
+#   Percentage of Variation
+sf_crime.pca.var.per <- round(sf_crime.pca.var/sum(sf_crime.pca.var) * 100, 1)
+
+sf_crime.pca.rotation <- sf_crime.pca$rotation[ , 1]
+abs(sf_crime.pca.rotation) 
+sort(abs(sf_crime.pca.rotation) , decreasing = TRUE)
+
+#  Explore the variance of the PCs
+
+#  This turning point in the level of explained variance indicates the number of principal components present in the data.
+plot(sf_crime.pca, type="lines")
+#  Visualization of the explained Variable
+fviz_eig(sf_crime.pca, addlabels = TRUE)
+
+
+#  Plot PC1 and PC2 to have more information
+data.frame(PC1 = sf_crime.pca$x[,1], PC2 = sf_crime.pca$x[,2], label=factor(train_set$Category_Violent_dummy)) %>%
+  sample_n(2000) %>% ggplot(aes(PC1, PC2, fill=label))+ geom_point(cex=3, pch=21) 
+
+# Preparation for model fitting: calculate means of Columns 
+col_means<- colMeans(test_set_pca)
+
+#  Set x_train equal to PC's
+x_train <- sf_crime.pca$x
+
+y <- factor(train_set$Category_Violent_dummy)
+
+#  Fit knn with k = 5 model
+fit <- knn3(x_train, y)
+
+#  Transform the test_set
+x_test <- as.matrix(sweep(test_set_pca, 2, col_means)) %*% sf_crime.pca$rotation
+
+#  Predict Category 
+y_hat <- predict(fit, x_test, type = "class")
+
+# Print Accuracy of the model
+confusionMatrix(y_hat, factor(test_set$Category_Violent_dummy))$overall["Accuracy"] %>% knitr::kable("pipe")
+```
+
+
+
+#   #   #   #   #   #   #   #   #   #   #  #   #   #   #   #   #
+#    Principal component Analyses (PCA) on Validation Data set #  
+#  #  #  #  #  #  #  #  #  #  #  #  #   #   #   #   #   #   #  #
+
+#  Keep only numerical variables in sf_crime_p_pca data set
+sf_crime_p_pca <- sf_crime_p[ , c( "Resolution_dummy",
+                                   "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
+
+#  Keep only numerical variables in validation_pca data set
+validation_pca <- validation[ , c( "Resolution_dummy",
+                                   "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
+
+#  Perform PCA 
+sf_crime.pca <- prcomp(sf_crime_p_pca, center = TRUE)
+
+# Preparation for model fitting: calculate means of columns 
+col_means<- colMeans(validation_pca)
+
+#  Set x_train equal to PC's
+x_train <- sf_crime.pca$x
+
+y <- factor(sf_crime_p$Category_Violent_dummy)
+
+#  Fit knn with k = 5 model
+fit <- knn3(x_train, y)
+
+#  Transform the test_set
+x_test <- as.matrix(sweep(validation_pca, 2, col_means)) %*% sf_crime.pca$rotation
+
+#  Predict Category 
+y_hat <- predict(fit, x_test, type = "class")
+
+# Print Accuracy of the model on Validation data
+confusionMatrix(y_hat, factor(validation$Category_Violent_dummy))$overall["Accuracy"] %>% knitr::kable("pipe")
+
+
+
+
+
+## Results
+#  As the correlation shows predictors are  correlated, so PCA analysis would  be appropriate method
+##Discussion
+
+[^1]: https://rafalab.github.io/dsbook/
