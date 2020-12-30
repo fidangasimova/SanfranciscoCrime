@@ -235,7 +235,7 @@ head(sf_crime, 10)
 summary(sf_crime)
 ```
 
-Number of unique incidents is 150,500, crime categories are listed. *Description* of crime includes 726 different descriptions. This variable was mot strictly defined and was up to the police officers to chose the description. 16130 different addresses are present in the data set. There are 10 districts (plus one incident without a district) of Police Department and 14 resolution of crime categories.
+Number of unique crime incidents is 150,500, there are 39 listed crime categories. *Description* of crime includes 726 different descriptions. This variable was mot strictly defined and was up to the police officers to chose the description. 16130 different addresses are present in the data set. There are 10 districts (plus one incident without a district) of Police Department and 14 resolution of crime categories.
 ```{r warning=FALSE, echo = FALSE}
 sf_crime %>% summarise(n_ids = n_distinct(PdId), 
                        n_crime_category = n_distinct(Category),
@@ -444,7 +444,7 @@ sf_crime %>% group_by(Address) %>%
   theme_classic()
 ```
 
-## Method
+# Method
 The goal of the analysis id to predict the category of crime by using predictors considered in the Visualization part. First take a look at the correlation between the variables.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -496,7 +496,7 @@ test_set <- test_set %>%
         semi_join(train_set, by = "IncidntNum")
 ```
 
-#  Logistic regression with one predictor   
+## Logistic regression with one predictor   
 Only numerical variables were use as predictors in the *Logistic Regression* model. First only one predictor *Resolution_dummy*, a dummy variable with values of 1 for resolved crime and value of 0 for non-resolved crime. 
 $glm()$ function with specified $family = "binomial"$ is used to fit the *Logistic Regression* model.
 
@@ -557,7 +557,7 @@ The result shows the Accuracy is below the guessing rate, next model will includ
 - *X* and *Y* -Location of the crime
 
 
-# Logistic regression with more than one predictor 
+## Logistic regression with more than one predictor 
 
 ```{r  warning=FALSE}
 fit_glm_mp <- glm(Category_Violent_dummy ~ Resolution_dummy + Time_Hour + Date_Day + 
@@ -603,7 +603,7 @@ accuracy_results %>% knitr::kable()
 
 Since the result has improved and is above the guessing rate, this model will be applied on the **validation** and **sf_crime_p** data.
 
-# Final Logistic regression with more than one predictor on Validation (test) and sf_crime_p
+## Final Logistic regression with more than one predictor on **validation** and **sf_crime_p**
 
 ```{r  warning=FALSE}
 fit_glm_mp_v <- glm(Category_Violent_dummy ~ Resolution_dummy + Time_Hour + Date_Day + 
@@ -649,108 +649,122 @@ accuracy_results %>% knitr::kable()
 ```
 
 
-# Principal component Analyses (PCA) #  
-Another method will be applied to improve the results of prediction. PCA is is one of ML methods to reduce high-dimensionality of the data set in case of many correlated predictors. PCA works best with numerical data all categorical variables are excluded from predictors..
+## Principal component Analyses (PCA)  
+Another method will be applied to improve the results of the prediction. PCA is is one of ML methods to reduce high-dimensionality of the data set in case of many predictors. PCA works best with numerical data all categorical variables are excluded from the data with predictors.
 
 ```{r message=FALSE, warning=FALSE}
-train_set_pca <- train_set[ , c( "Resolution_dummy",
-                                "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
+train_set_pca <- train_set[ , c("Resolution_dummy",
+                                "Count_Address_Occur", "Time_Hour",
+                                "Date_Day", "Date_Month", "X", "Y") ]
 
-test_set_pca <- test_set[ , c(  "Resolution_dummy", 
-                               "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
+test_set_pca <- test_set[ , c("Resolution_dummy", 
+                              "Count_Address_Occur", "Time_Hour",
+                              "Date_Day", "Date_Month", "X", "Y") ]
 ```
 
-This data is passed to the $prcomp()$ function assigning the output to sf_crime.pca.  $prcomp()$ provides linear orthogonal transformation of the passed data.Argument $center = TRUE$ means the columns are centered. Argument $scale = TRUE$ only makes only sense if variables are measured on the same scale, which is not the case.
+This data is passed to the $prcomp()$ function assigning the output to **sf_crime.pca**.  $prcomp()$ provides linear orthogonal transformation of the passed data.Argument $center = TRUE$ means the columns are centered. Argument $scale = TRUE$ only makes only sense if variables are measured on the same scale, which is not the case. The center component corresponds to the means of the variables.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
+```{r message=FALSE, warning=FALSE}
+# PCA method
 sf_crime.pca <- prcomp(train_set_pca, center = TRUE)
 
-
-#   The center and scale components correspond to the means and standard deviations of the variables
-#   Mean value
+# Mean value
 sf_crime.pca$center
-
-
-# 6 principal components were obtained. Each of these explains a percentage of the total variation in the dataset. That is to say: PC1 explains 21% of the total variance,
-#  PC2 explains 17% of the variance. So, by knowing the position of a sample in relation to just PC1 and PC2, you can get a very accurate view on where it stands in relation to other samples, as just PC1, PC2 and PC3 can explain 55%
-#  of the variance.
-
-#   Summary of the output
-summary(sf_crime.pca)
-summary(sf_crime.pca)$importance[,1:7]
-
-
-#   PCA returns 3 parameters
-#   PC components
-sf_crime.pca$x
-head(sf_crime.pca$x)
-
-#  Standard Deviation of the Components
-sf_crime.pca$sdev
-
-#   Rotation parameter. The rotation matrix provides the principal component loadings;
-#   each column of sf_crime.pca$rotation contains the corresponding principal component 
-sf_crime.pca$rotation
-head(sf_crime.pca$rotation)
-
-#   Calculate the Variation
-sf_crime.pca.var <- sf_crime.pca$sdev^2
-
-
-#   Percentage of Variation
-sf_crime.pca.var.per <- round(sf_crime.pca.var/sum(sf_crime.pca.var) * 100, 1)
-
-sf_crime.pca.rotation <- sf_crime.pca$rotation[ , 1]
-abs(sf_crime.pca.rotation) 
-sort(abs(sf_crime.pca.rotation) , decreasing = TRUE)
-
-#  Explore the variance of the PCs
-
-#  This turning point in the level of explained variance indicates the number of principal components present in the data.
-plot(sf_crime.pca, type="lines")
-#  Visualization of the explained Variable
-fviz_eig(sf_crime.pca, addlabels = TRUE)
-
-
-#  Plot PC1 and PC2 to have more information
-data.frame(PC1 = sf_crime.pca$x[,1], PC2 = sf_crime.pca$x[,2], label=factor(train_set$Category_Violent_dummy)) %>%
-  sample_n(2000) %>% ggplot(aes(PC1, PC2, fill=label))+ geom_point(cex=3, pch=21) 
-
-# Preparation for model fitting: calculate means of Columns 
-col_means<- colMeans(test_set_pca)
-
-#  Set x_train equal to PC's
-x_train <- sf_crime.pca$x
-
-y <- factor(train_set$Category_Violent_dummy)
-
-#  Fit knn with k = 5 model
-fit <- knn3(x_train, y)
-
-#  Transform the test_set
-x_test <- as.matrix(sweep(test_set_pca, 2, col_means)) %*% sf_crime.pca$rotation
-
-#  Predict Category 
-y_hat <- predict(fit, x_test, type = "class")
-
-# Print Accuracy of the model
-confusionMatrix(y_hat, factor(test_set$Category_Violent_dummy))$overall["Accuracy"] %>% knitr::kable("pipe")
 ```
 
+PCA returns 3 components: $\$x$ the principal components, $\$rotation$ to transform the matrix and $\$sdev$ standard deviation.
 
+```{r warning = FALSE}
+# PC's components
+head(sf_crime.pca$x)
 
-#   #   #   #   #   #   #   #   #   #   #  #   #   #   #   #   #
-#    Principal component Analyses (PCA) on Validation Data set #  
-#  #  #  #  #  #  #  #  #  #  #  #  #   #   #   #   #   #   #  #
+# Standard Deviation of the components
+sf_crime.pca$sdev
 
+# Rotation parameter
+head(sf_crime.pca$rotation)
+```
+
+7 principal components were obtained. Each PC explains a percentage of the total variation in the data. PC1, PC2 and PC3 explain almost 100% of the total variance.
+
+```{r message=FALSE, warning=FALSE}
+# Summary of the output
+summary(sf_crime.pca)
+summary(sf_crime.pca)$importance
+
+# Calculate the Variance
+sf_crime.pca.var <- sf_crime.pca$sdev^2
+sf_crime.pca$sdev^2
+```
+
+The percentage of variation explained by PC's.
+```{r message=FALSE, warning=FALSE}
+# Percentage of Variation
+sf_crime.pca.var.per <- sf_crime.pca.var/sum(sf_crime.pca.var) * 100
+sf_crime.pca.var.per
+```
+
+Here we can see what variables have the largest effect
+
+```{r message=FALSE, warning=FALSE}
+sf_crime.pca.rotation <- sf_crime.pca$rotation[ , 1]
+sort(abs(sf_crime.pca.rotation) , decreasing = TRUE) %>% knitr::kable()
+```
+
+## Visualization of the Variation
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot(sf_crime.pca, type="lines")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Visualization of the explained variation
+fviz_eig(sf_crime.pca, addlabels = TRUE)
+```
+
+Plotting first two components of PCA. The plot shows how close are the observations to each other if they build clusters.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#  Plot PC1 and PC2 to have more information
+data.frame(PC1 = sf_crime.pca$x[,1], PC2 = sf_crime.pca$x[,2], label=factor(train_set$Category_Violent_dummy)) %>%
+  sample_n(1000) %>%
+  ggplot(aes(PC1, PC2, fill=label))+
+  geom_point(cex=3, pch=21) 
+```
+
+In next step transformation will be applied to train and test data. Knn method will be fit on the reduced data set with relevant predictors.
+
+```{r message=FALSE, warning=FALSE}
+# Preparation for model fitting: calculate means of Columns 
+col_means<- colMeans(test_set_pca)
+#  Set x_train equal to PC's
+x_train <- sf_crime.pca$x[ ,1:3]
+y <- factor(train_set$Category_Violent_dummy)
+#  Fit knn model
+fit <- knn3(x_train, y)
+#  Transform the test_set
+x_test <- as.matrix(sweep(test_set_pca, 2, col_means)) %*% sf_crime.pca$rotation
+x_test <- x_test[ ,1:3] 
+#  Predict Category 
+y_hat <- predict(fit, x_test, type = "class")
+# Print Accuracy of the model
+confusionMatrix(y_hat,
+                factor(test_set$Category_Violent_dummy))$overall["Accuracy"] %>%
+                 knitr::kable("pipe")
+```
+
+## Final PCA on  **validation** and **sf_crime_p**
+Since the Accuracy improved by using the PCA, the same procedure will be applied to the **validation** and **sf_crime_p**.
+```{r message=FALSE, warning=FALSE}
 #  Keep only numerical variables in sf_crime_p_pca data set
 sf_crime_p_pca <- sf_crime_p[ , c( "Resolution_dummy",
-                                   "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
+                                   "Count_Address_Occur", "Time_Hour","Date_Day",
+                                   "Date_Month", "X", "Y") ]
 
 #  Keep only numerical variables in validation_pca data set
 validation_pca <- validation[ , c( "Resolution_dummy",
-                                   "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
+                                   "Count_Address_Occur", "Time_Hour","Date_Day",
+                                   "Date_Month", "X", "Y") ]
 
 #  Perform PCA 
 sf_crime.pca <- prcomp(sf_crime_p_pca, center = TRUE)
@@ -759,7 +773,7 @@ sf_crime.pca <- prcomp(sf_crime_p_pca, center = TRUE)
 col_means<- colMeans(validation_pca)
 
 #  Set x_train equal to PC's
-x_train <- sf_crime.pca$x
+x_train <- sf_crime.pca$x[ ,1:3]
 
 y <- factor(sf_crime_p$Category_Violent_dummy)
 
@@ -768,19 +782,24 @@ fit <- knn3(x_train, y)
 
 #  Transform the test_set
 x_test <- as.matrix(sweep(validation_pca, 2, col_means)) %*% sf_crime.pca$rotation
+x_test <- x_test[ ,1:3] 
 
 #  Predict Category 
 y_hat <- predict(fit, x_test, type = "class")
 
 # Print Accuracy of the model on Validation data
-confusionMatrix(y_hat, factor(validation$Category_Violent_dummy))$overall["Accuracy"] %>% knitr::kable("pipe")
+confusionMatrix(y_hat,
+                factor(validation$Category_Violent_dummy))$overall["Accuracy"] %>%
+                knitr::kable("pipe")
+```
+
+# Results and Disscussion
+Due to the computational power the a small data set was chosen which led to limitations in the chose of models. The goal of the analysis was to predict the crime category. There are 39 different crime categories  listed. Analysis applied to predict variable *Category* yielded a very low Accuracy. Some of the 39 Categories don't include enough observations or information to build a reliable prediction. Therefore the variable *Category* was transform into a dummy variable *Category_Violent_dummy* was assigned value 1 when "ASSAULT", "ROBBERY", "SEX OFFENSES, FORCIBLE", "KIDNAPPING" and value 0 otherwise. All performed methods first were applied on train and test and additionally on the **validation** and **sf_crime_p** data.
+First *Logistic Regression* with one predictor was applied with $Accuracy = 0.427$ with is below the guessing rate. By extending the number of predictors by 7 the the Accuracy increased to 63%. This model was fit to the **validation** and **sf_crime_p** data and showed $Accuracy = 0.626$.
+
+In order to improve the results and to reduce the number of predictors *Principal Component Analysis* (PCA) was used. First the method was applied to the train data with 7 predictors such as: *Resolution_dummy*, *Count_Address_Occur*, *Time_Hour*,  *Date_Day*, *Date_Month*, *X* and *Y* for location. PCA showed that *Count_Address_Occur*, *Date_Day* and *Date_Month* have the largest effect and that first 3 PC's explain almost 100% of the variation in the data. Therefore only first 3 PC's were taken into account to predict *Category_Violent_dummy*. The obtained result $Accuracy = 0.798$. As conclusion results obtained from PCA yielded higher $Accuracy$ with less predictors than results obtained from *Logistic Regression*. 
+The difficulty of having the memory capacity limitations led to the reduction of the analysis techniques. 
 
 
-
-
-
-## Results
-#  As the correlation shows predictors are  correlated, so PCA analysis would  be appropriate method
-##Discussion
 
 [^1]: https://rafalab.github.io/dsbook/

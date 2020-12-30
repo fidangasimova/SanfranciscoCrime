@@ -359,6 +359,8 @@ sf_crime %>% group_by(Address) %>%
   ggtitle("Address for Number of  Crime Occurrences") +
   theme_classic()
 
+
+################
 #  #  #  #  #  #   
 #   Analysis   #  
 #  #  #  #  #  #  
@@ -392,7 +394,7 @@ rm(test_index, temp, removed)
   
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
-#   Generate train and test sets, 20% of sf_crime data        # 
+#   Generate train and test sets, 20% of sf_crime data   # 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 
 set.seed(110)
@@ -481,7 +483,7 @@ accuracy_results %>% knitr::kable()
 
 fit_glm_mp_v <- glm(Category_Violent_dummy ~ Resolution_dummy + Time_Hour + Date_Day +
                     Date_Month + X + Y, family = "binomial",
-                    data=sf_crime_p)
+                    data = sf_crime_p)
 
 summary(fit_glm_mp_v)
 
@@ -517,7 +519,6 @@ accuracy_results %>% knitr::kable()
 #  #  #  #  #  #  #  #  #  #  #  #  #   # 
 
 #  PCA works best with numerical data, categorical variables were excluded.
-#  You are left with a matrix of 6 columns and 8631 rows
 
 train_set_pca <- train_set[ , c( "Resolution_dummy",
                                 "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
@@ -525,29 +526,12 @@ train_set_pca <- train_set[ , c( "Resolution_dummy",
 test_set_pca <- test_set[ , c(  "Resolution_dummy", 
                                "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
 
-#  This data is passed to the prcomp() function, assigning your output to sf_crime.pca
-
-
-#  two arguments, center = TRUE and scale = TRUE. That means the columns are centered. scale only makes sense if variables are measured on the same scale
-#sf_crime.pca <- prcomp(train_set_pca, center = TRUE, scale = TRUE)
+#  Data is passed to the prcomp() function assigning output to sf_crime.pca
 sf_crime.pca <- prcomp(train_set_pca, center = TRUE)
 
-
-#   The center and scale components correspond to the means and standard deviations of the variables
 #   Mean value
 sf_crime.pca$center
 
-
-# 6 principal components were obtained. Each of these explains a percentage of the total variation in the dataset. That is to say: PC1 explains 21% of the total variance,
-#  PC2 explains 17% of the variance. So, by knowing the position of a sample in relation to just PC1 and PC2, you can get a very accurate view on where it stands in relation to other samples, as just PC1, PC2 and PC3 can explain 55%
-#  of the variance.
-
-#   Summary of the output
-summary(sf_crime.pca)
-summary(sf_crime.pca)$importance[,1:7]
-
-
-#   PCA returns 3 parameters
 #   PC components
 sf_crime.pca$x
 head(sf_crime.pca$x)
@@ -555,38 +539,45 @@ head(sf_crime.pca$x)
 #  Standard Deviation of the Components
 sf_crime.pca$sdev
 
-#   Rotation parameter. The rotation matrix provides the principal component loadings;
-#   each column of sf_crime.pca$rotation contains the corresponding principal component 
+#   Rotation parameter
 sf_crime.pca$rotation
 head(sf_crime.pca$rotation)
 
-#   Calculate the Variation
+#   Summary of the output
+summary(sf_crime.pca)
+
+#  Importance of the PC's
+summary(sf_crime.pca)$importance
+
+#  Calculate the Variance
 sf_crime.pca.var <- sf_crime.pca$sdev^2
 
-
 #   Percentage of Variation
-sf_crime.pca.var.per <- round(sf_crime.pca.var/sum(sf_crime.pca.var) * 100, 1)
+sf_crime.pca.var.per <- sf_crime.pca.var/sum(sf_crime.pca.var) * 100
+sf_crime.pca.var.per
 
+#  Largest effects on PCA
 sf_crime.pca.rotation <- sf_crime.pca$rotation[ , 1]
-abs(sf_crime.pca.rotation) 
 sort(abs(sf_crime.pca.rotation) , decreasing = TRUE)
 
-#  Explore the variance of the PCs
-#  This turning point in the level of explained variance indicates the number of principal components present in the data.
+#  Plot the variance of the PCs
 plot(sf_crime.pca, type="lines")
+
 #  Visualization of the explained Variable
 fviz_eig(sf_crime.pca, addlabels = TRUE)
 
 
 #  Plot PC1 and PC2 to have more information
 data.frame(PC1 = sf_crime.pca$x[,1], PC2 = sf_crime.pca$x[,2], label=factor(train_set$Category_Violent_dummy)) %>%
-  sample_n(2000) %>% ggplot(aes(PC1, PC2, fill=label))+ geom_point(cex=3, pch=21) 
+          sample_n(1000) %>%
+          ggplot(aes(PC1, PC2, fill=label)) +
+          geom_point(cex=3, pch=21) 
 
 # Preparation for model fitting: calculate means of Columns 
 col_means<- colMeans(test_set_pca)
 
 #  Set x_train equal to PC's
-x_train <- sf_crime.pca$x
+x_train <- sf_crime.pca$x[ ,1:3]
 
 y <- factor(train_set$Category_Violent_dummy)
 
@@ -595,6 +586,7 @@ fit <- knn3(x_train, y)
 
 #  Transform the test_set
 x_test <- as.matrix(sweep(test_set_pca, 2, col_means)) %*% sf_crime.pca$rotation
+x_test <- x_test[ ,1:3] 
 
 #  Predict Category 
 y_hat <- predict(fit, x_test, type = "class")
@@ -622,7 +614,7 @@ sf_crime.pca <- prcomp(sf_crime_p_pca, center = TRUE)
 col_means<- colMeans(validation_pca)
 
 #  Set x_train equal to PC's
-x_train <- sf_crime.pca$x
+x_train <- sf_crime.pca$x[ ,1:3]
 
 y <- factor(sf_crime_p$Category_Violent_dummy)
 
@@ -631,7 +623,7 @@ fit <- knn3(x_train, y)
 
 #  Transform the test_set
 x_test <- as.matrix(sweep(validation_pca, 2, col_means)) %*% sf_crime.pca$rotation
-
+x_test <- x_test[ ,1:3] 
 #  Predict Category 
 y_hat <- predict(fit, x_test, type = "class")
 
@@ -647,113 +639,3 @@ confusionMatrix(y_hat, factor(validation$Category_Violent_dummy))$overall["Accur
 
 
 
-#######################################################################
-#  
-#  PCA works best with numerical data, categorical variables were excluded.
-#  You are left with a matrix of 6 columns and 8631 rows
-set.seed(202)
-test_index <- createDataPartition(y = sf_crime$Category, times = 1, p = 0.2, list = FALSE)
-test_set<- sf_crime[test_index, ]
-train_set <- sf_crime[-test_index, ]  
-
-train_set_pca <- train_set[ , c("Category_Violent_dummy", "Resolution_dummy",
-                                "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
-
-test_set_pca <- test_set[ , c("Category_Violent_dummy", "Resolution_dummy",
-                              "Count_Address_Occur", "Time_Hour","Date_Day", "Date_Month", "X", "Y") ]
-
-#  This data is passed to the prcomp() function, assigning your output to sf_crime.pca
-
-
-#  two arguments, center = TRUE and scale = TRUE. That means the columns are centered. scale only makes sense if variables are measured on the same scale
-#sf_crime.pca <- prcomp(train_set_pca, center = TRUE, scale = TRUE)
-sf_crime.pca <- prcomp(train_set_pca,  center = TRUE)
-
-# Get eigenvalue
-eig.val <- get_eigenvalue(sf_crime.pca)
-eig.val
-
-#   The center and scale components correspond to the means and standard deviations of the variables
-#   Mean value
-sf_crime.pca$center
-
-
-# 6 principal components were obtained. Each of these explains a percentage of the total variation in the dataset. That is to say: PC1 explains 21% of the total variance,
-#  PC2 explains 17% of the variance. So, by knowing the position of a sample in relation to just PC1 and PC2, you can get a very accurate view on where it stands in relation to other samples, as just PC1, PC2 and PC3 can explain 55%
-#  of the variance.
-
-#   Summary of the output
-summary(sf_crime.pca)
-summary(sf_crime.pca)$importance[,1:8]
-
-
-#   PCA returns 3 parameters
-#   PC components
-sf_crime.pca$x
-head(sf_crime.pca$x)
-
-#  Standard Deviation of the Components
-sf_crime.pca$sdev
-
-#   Rotation parameter. The rotation matrix provides the principal component loadings;
-#   each column of sf_crime.pca$rotation contains the corresponding principal component 
-sf_crime.pca$rotation
-head(sf_crime.pca$rotation)
-
-#   Calculate the Variation
-sf_crime.pca.var <- sf_crime.pca$sdev^2
-
-
-#   Percentage of Variation
-sf_crime.pca.var.per <- round(sf_crime.pca.var/sum(sf_crime.pca.var) * 100, 1)
-
-sf_crime.pca.rotation <- sf_crime.pca$rotation[ , 1]
-abs(sf_crime.pca.rotation) 
-sort(abs(sf_crime.pca.rotation) , decreasing = TRUE)
-
-#  Explore the variance of the PCs
-#  This turning point in the level of explained variance indicates the number of principal components present in the data.
-
-plot(sf_crime.pca, type="lines")
-
-#  Visualization of the explained Variable
-fviz_eig(sf_crime.pca, addlabels = TRUE)
-
-#Extract Results
-names_pca<-names((summary(sf_crime.pca)$importance[3, ]))
-values<-data.frame(x=summary(sf_crime.pca)$importance[3, ], y=names(summary(sf_crime.pca)$importance[3, ]))%>%top_n(10) 
-
-plot(summary(sf_crime.pca)$importance[3,])
-
-
-boxplot(sf_crime.pca$x[,2] ~ train_set$Category[, 1:10], main = paste("PC", 2), axis.text.x = element_text(angle = 180))
-
-
-
-
-
-#The following plot shows which observations are close to each other. The plot depicts two Principal Components PC1 and PC2 with color representing Category.
-#We can see category cluster
-#  Plot PC1 and PC2 to have more information
-data.frame(PC1 = sf_crime.pca$x[,1], PC2 = sf_crime.pca$x[,2], label=factor(train_set$Category)) %>%
-  sample_n(10000) %>% ggplot(aes(PC1, PC2, fill=label))+ geom_point(cex=3, pch=21) 
-
-# Preparation for model fitting: calculate means of Columns 
-col_means<- colMeans(test_set_pca)
-
-#  Set x_train equal to PC's
-x_train <- sf_crime.pca$x
-
-y <- factor(train_set$Category)
-
-#  Fit knn with k = 5 model
-fit <- knn3(x_train, y)
-
-#  Transform the test_set
-x_test <- as.matrix(sweep(test_set_pca, 2, col_means)) %*% sf_crime.pca$rotation
-
-#  Predict Category 
-y_hat <- predict(fit, x_test, type = "class")
-
-
-confusionMatrix(y_hat, factor(test_set$Category))$overall["Accuracy"] %>% knitr::kable("pipe")
