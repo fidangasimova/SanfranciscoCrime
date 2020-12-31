@@ -49,8 +49,7 @@ library(gridExtra)
 # Install tinytex (for running latex) if having not installed
 # tinytex::install_tinytex()
 
-
-# url <- https://www.kaggle.com/roshansharma/sanfranciso-crime-dataset
+download.file("https://raw.githubusercontent.com/fidangasimova/SanfranciscoCrime/main/sf_crime.csv", "sf_crime.csv")
 sf_crime <- read.csv("sf_crime.csv", header=TRUE, sep = ",", row.names = NULL, quote = "\"")
 
 #  Names of columns without spaces
