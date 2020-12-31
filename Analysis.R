@@ -49,6 +49,7 @@ library(gridExtra)
 # Install tinytex (for running latex) if having not installed
 # tinytex::install_tinytex()
 
+#  Download the data from github repo
 download.file("https://raw.githubusercontent.com/fidangasimova/SanfranciscoCrime/main/sf_crime.csv", "sf_crime.csv")
 sf_crime <- read.csv("sf_crime.csv", header=TRUE, sep = ",", row.names = NULL, quote = "\"")
 
