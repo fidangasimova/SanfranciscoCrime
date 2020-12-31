@@ -19,7 +19,7 @@ The analysis performed within this project is based on a data set entitled San F
 
 - https://www.kaggle.com/roshansharma/sanfranciso-crime-dataset 
 
-The original dataset is from https://datasf.org/opendata/, the central clearinghouse for data published by the City and County of San Francisco. The San Francisco Police Department does not guarantee the accuracy, completeness, timeliness or correct sequencing of the information as the data is subject to change as modifications and updates are completed. The complete data set can be found here:
+The original dataset is from https://datasf.org/opendata, the central clearinghouse for data published by the City and County of San Francisco. The San Francisco Police Department does not guarantee the accuracy, completeness, timeliness or correct sequencing of the information as the data is subject to change as modifications and updates are completed. The complete data set can be found here:
 
 
 - https://data.sfgov.org/Public-Safety/Police-Department-Incident-Reports-Historical-2003/tmnf-yvry
@@ -120,12 +120,12 @@ print(nrow(sf_crime))
 This data set contains incidents derived from SFPD Crime Incident Reporting system. The data ranges from January to December 2016. The downloaded data set **sf_crime** consists of following 13 variables: 
 
 - *PdId* - ID given by Police Department District
-- *IncidntNum* - ID of th incident
-- *Date* - time in mm/dd/yy format
-- *Time* - time of the day from 00 to 24 hours
+- *IncidntNum* - ID of the incident
+- *Date* - date of the incident in mm/dd/yy format
+- *Time* - time of the incident
 - *Category* - category of the crime incident
 - *Descript* - detailed description of the crime incident
-- *DayOfWeek* - the day of the week (Mo-Fr)
+- *DayOfWeek* - the day of the week
 - *PdDistrict* - name of the Police Department District
 - *Resolution* - how the crime incident was resolved 
 - *Address* - the approximate street address of the crime incident
@@ -141,7 +141,7 @@ sum(is.na(sf_crime))
 
 In order to visualize and analyze the data set several new variables were created through transformation of existing variables.
 
-The variable *Date* was transformed and split into *Date_Month*, *Date_Day*, *Date_Year*. Variable *Time* was converted into a numerical variable *Time_Hour* that shows time of the day when crime took place. *Resolution_dummy* was created to indicate if the incident was resolved which equals 1 or not resolved = 0. In order to simplify variable *Category*  a dummy variable *Category_Violent_dummy* was assigned value 1 when "ASSAULT", "ROBBERY", "SEX OFFENSES, FORCIBLE", "KIDNAPPING" and value 0 otherwise. New variable *Count_Address_Occur* indicates how many times incidents took place at the same address. 
+The variable *Date* was transformed and split into *Date_Month*, *Date_Day*, *Date_Year*. Variable *Time* was converted into a numerical variable *Time_Hour* that shows time of the day when crime took place. *Resolution_dummy* was created to indicate if the incident was resolved, it was set to 1 if resolved otherwise 0. In order to simplify variable *Category* a dummy variable *Category_Violent_dummy* was assigned value 1 when "ASSAULT", "ROBBERY", "SEX OFFENSES, FORCIBLE", "KIDNAPPING" and value 0 otherwise. New variable *Count_Address_Occur* indicates how many times incidents took place at the same address. 
 
 ```{r echo = FALSE}
 #   Convert char variable "Time_Hour" into a numeric variable
@@ -204,7 +204,7 @@ sf_crime <- arrange(sf_crime, by = PdId)
 summary(sf_crime)
 ```
 
-*PdId* is a unique identifier (each incident gets its unique number) whereas *IncidntNum* incident number can be assigned to several incidents that happened during the same crime.
+*PdId* is a unique identifier for each crime incident, whereas *IncidntNum* can be assigned to several crimes that happened during the same incident.
 ```{r include = FALSE}
 # Find duplicates among "IncidntNum"(incident number)
 duplicated(sf_crime$IncidntNum)
@@ -235,7 +235,7 @@ head(sf_crime, 10)
 summary(sf_crime)
 ```
 
-Number of unique crime incidents is 150,500, there are 39 listed crime categories. *Description* of crime includes 726 different descriptions. This variable was mot strictly defined and was up to the police officers to chose the description. 16130 different addresses are present in the data set. There are 10 districts (plus one incident without a district) of Police Department and 14 resolution of crime categories.
+The number of unique crime incidents is 150,500 and there are 39 listed crime categories. The *Description* of crimes includes 726 different descriptions. This variable was not strictly defined and was up to the police officers to choose. 16130 different addresses are present in the data set. There are 10 districts (plus one incident without a district) of Police Department and 14 resolution of crime categories.
 ```{r warning=FALSE, echo = FALSE}
 sf_crime %>% summarise(n_ids = n_distinct(PdId), 
                        n_crime_category = n_distinct(Category),
@@ -248,7 +248,7 @@ sf_crime %>% summarise(n_ids = n_distinct(PdId),
 # Visualization
 
 ##  District 
-The occurrence of crime by 10 different districts shows that by far the most criminal district is Southern district followed by Northern and Mission. Park district shows the least crime occurrence with 8699 incidents for 2016.
+The occurrence of crime in 10 different districts shows that by far the most criminal district is Southern district followed by Northern and Mission. Park district shows the least crime occurrences, with 8699 incidents for 2016.
 
 ```{r echo=FALSE, message=FALSE}
 #   Number of crime occurrences for each district
@@ -274,7 +274,7 @@ nlevels(sf_crime$Category)
 print(unique(sf_crime$Category))
 ```
 
-Following categories are the top 10 of total 39 categories. "LARCENY/THEFT" accounts for the most cases."MISSING PERSON" is the smallest category in the top ten of crime categories.
+The following categories are the 10 most common. "LARCENY/THEFT" accounts for the most cases and "MISSING PERSON" is the smallest category in the top ten.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Top 10 crimes with the greatest number of occurrence
@@ -296,7 +296,7 @@ sf_crime %>%group_by(Category) %>%
 ```
 
 ## Weekdays
-The following pie-chart shows that crime occurrence over the week days was almost evenly distributed with Friday as a day most crime occurrence (only a small difference to other days). 
+The following pie-chart shows that crime occurrence over the days of the week was almost evenly distributed. 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Pie-Chart Crime Frequency on Weekdays
@@ -320,7 +320,7 @@ sf_crime %>%
 ```
 
 ## Daytime
-The dat time plot shows that most crime occurred around 18:00 (6pm) with N = 11280 cases.According to the data for 2016 the safest hour was 5am in the morning with N=1520 incidents.
+The day time plot shows that most crime occurred around 18:00 (6pm) with N = 11280 cases. According to the data for 2016 the safest hour was 5am in the morning with N=1520 incidents.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Occurrence of crime during a day Time_Hour
@@ -337,7 +337,7 @@ sf_crime %>%group_by(Time_Hour) %>%
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-Crime Category "LARCENY/THEFT" remains the most committed crime throughout the day. The number of "LARCENY/THEFT" increases in the evening hours (starting in the afternoon).
+Crime Category "LARCENY/THEFT" remains the most committed crime throughout the day. The number of "LARCENY/THEFT" increases in the evening hours.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Top 10 crime category over day time
@@ -355,7 +355,7 @@ sf_crime%>% group_by(Time_Hour, Category) %>%
 ```
 
 ## Months
-The crime distribution among the months of 2016 also shows an even distribution with October with max number of crime incidents.
+The crime distribution among the months of 2016 also shows a fairly even distribution, with October with the largest number of crime incidents.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Number of Crime Occurrences on Weekdays
@@ -376,7 +376,7 @@ sf_crime  %>% group_by(Month) %>%
 ```
 
 ## Resolution of Crime
-An important variable in the crime statistics is a crime resolution variable. And as we can see most of the cases were not resolved. The second biggest category within the variable **Resolution** is "ARREST, BOOKED".
+An important variable in the crime statistics is a crime resolution variable. As we can see most of the cases were not resolved. The second biggest category within the variable **Resolution** is "ARREST, BOOKED".
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Top 10 of most common crime resolutions
@@ -422,7 +422,7 @@ sf_crime  %>% group_by(Descript) %>%
 ```
 
 ## Address
-Some addresses appeared more often in the data than others. There are 16130 different addresses in the data set. Following visualization shows top 20 most frequent addresses in the crime data for 2016.
+Some addresses appeared more often in the data than others. There are 16130 different addresses in the data set. The following visualization shows the top 20 most frequent addresses in the crime data for 2016.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Top 20 of the most frequent addresses in San Francisco
@@ -431,7 +431,7 @@ sf_crime  %>% group_by(Address) %>%
   top_n(20, count) %>% knitr::kable()
 ```
 
-Number one address in the top ten that occurred 3561 times in 2016 is "800 Block of BRYANT ST" which is the address of a county jail.
+The top address that occurred 3561 times in 2016 is "800 Block of BRYANT ST", which is the address of a county jail.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #   Most common Address
@@ -445,7 +445,7 @@ sf_crime %>% group_by(Address) %>%
 ```
 
 # Method
-The goal of the analysis id to predict the category of crime by using predictors considered in the Visualization part. First take a look at the correlation between the variables.
+The goal of the analysis is to predict the category of crime by using predictors considered in the Visualization part. First we take a look at the correlation between the variables.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Correlation between numerical variables
@@ -457,7 +457,7 @@ corrplot(cor.data, order = "hclust", addrect = 2, type = "lower")
 
 ```
 
-In order to predict categorical variable *Logistic Regression*[^1] will be applied. As an outcome of the prediction *Category_Violent_dummy* with assigned values of 0 (non-violent) and 1 (violent) will be used. *Logistic Regression* is a subset of the *Generalized linear Models* and converts probability to log odds. (More details are given in 31.1 Chapter of https://rafalab.github.io/dsbook/).
+In order to predict a categorical variable, *Logistic Regression*[^1] will be applied. As an outcome of the prediction *Category_Violent_dummy* with assigned values of 0 (non-violent) and 1 (violent) will be used. *Logistic Regression* is a subset of the *Generalized linear Models* and converts probability to log odds. (More details are given in 31.1 Chapter of https://rafalab.github.io/dsbook).
 
 Accuracy was used to judge the performance of the prediction of a categorical variable. For the evaluation of the algorithm a **validation** data set was generated. The **sf_crime** data set was partitioned into **validation** and **sf_crime_p**.  The **validation** data set was only used in the final step to test the final algorithm and contained only 20% of **sf_crime** data. The final model with the highest accuracy was chosen to be applied to the **sf_crime_p** data to calculate the parameters of the model. For the final step, this model was evaluated by calculating the accuracy of the **validation** set. 
 
@@ -480,7 +480,7 @@ sf_crime_p <- rbind(sf_crime_p, removed)
 rm(test_index, temp, removed)  
 ```  
 
-In order to train and test the algorithm, **sf_crime_p** was divided into train and test set, where test_set contained only 20% of the **sf_crime_p** data.
+In order to train and test the algorithm, **sf_crime_p** was divided into a train and test set, where test_set contained only 20% of the **sf_crime_p** data.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -497,8 +497,7 @@ test_set <- test_set %>%
 ```
 
 ## Logistic regression with one predictor   
-Only numerical variables were use as predictors in the *Logistic Regression* model. First only one predictor *Resolution_dummy*, a dummy variable with values of 1 for resolved crime and value of 0 for non-resolved crime. 
-$glm()$ function with specified $family = "binomial"$ is used to fit the *Logistic Regression* model.
+Only numerical variables were used as predictors in the *Logistic Regression* model. First only one predictor *Resolution_dummy*, a dummy variable with values of 1 for resolved crime and value of 0 for non-resolved crime. The $glm()$ function with specified $family = "binomial"$ is used to fit the *Logistic Regression* model.
 
 ```{r  warning=FALSE}
 # Fit Logistic regression with one predictor
@@ -509,7 +508,7 @@ fit_glm <- glm(Category_Violent_dummy ~ Resolution_dummy,
 p_hat_glm <- predict(fit_glm, test_set, type = "response")
 ```
 
-The decision rule follows, predict violent Category if prediction $p_hat_glm > 0.15$, otherwise $0$.
+The decision rule is to predict a category as violent if p_hat_glm > 0.15.
 ```{r  warning=FALSE}
 # Set values to 1 (violent) if > 0.15 and otherwise 0 (non-violent)
 y_hat_glm <- ifelse(p_hat_glm > 0.15, 1, 0) 
@@ -528,7 +527,7 @@ nlevels(y_hat_glm )
 nlevels(test_set$Category_Violent_dummy)
 ```
 
-Overall accuracy is low and is below the guessing rate. The proportion of violent crime is much lower than a non-violent crime. To check *sensitivity* and *specificity*.
+Overall accuracy is low and is below the guessing rate. The proportion of violent crime is much lower than a non-violent crime.
 
 ```{r  warning=FALSE}
 #  Show byClass to check sensitivity, specificity 
@@ -548,13 +547,14 @@ accuracy_results %>% knitr::kable()
 ```
 
 
-The result shows the Accuracy is below the guessing rate, next model will include following predictors:
-- *Resolution_dummy*- shows if crime was resolved
-- *Time_Hour* - time of the day 
-- *Date_Day* - day ot he month
-- *Date_Month* - which month of the year
-- *Count_Address_Occur* - frequency how often crime took place
-- *X* and *Y* -Location of the crime
+The result shows the Accuracy is below the guessing rate. The next model will include the following predictors:
+
+- *Resolution_dummy* shows if crime was resolved
+- *Time_Hour* time of the day 
+- *Date_Day* day of the month
+- *Date_Month* which month of the year
+- *Count_Address_Occur* frequency of how often crime took place
+- *X* and *Y* location of the crime
 
 
 ## Logistic regression with more than one predictor 
@@ -650,7 +650,7 @@ accuracy_results %>% knitr::kable()
 
 
 ## Principal component Analyses (PCA)  
-Another method will be applied to improve the results of the prediction. PCA is is one of ML methods to reduce high-dimensionality of the data set in case of many predictors. PCA works best with numerical data all categorical variables are excluded from the data with predictors.
+Another method will be applied to improve the results of the prediction. PCA is is one of ML methods to reduce high-dimensionality of the data set in case of many predictors. PCA works best with numerical data, all non-numerical variables are excluded from the data with predictors.
 
 ```{r message=FALSE, warning=FALSE}
 train_set_pca <- train_set[ , c("Resolution_dummy",
@@ -662,7 +662,7 @@ test_set_pca <- test_set[ , c("Resolution_dummy",
                               "Date_Day", "Date_Month", "X", "Y") ]
 ```
 
-This data is passed to the $prcomp()$ function assigning the output to **sf_crime.pca**.  $prcomp()$ provides linear orthogonal transformation of the passed data.Argument $center = TRUE$ means the columns are centered. Argument $scale = TRUE$ only makes only sense if variables are measured on the same scale, which is not the case. The center component corresponds to the means of the variables.
+This data is passed to the $prcomp()$ function assigning the output to **sf_crime.pca**. $prcomp()$ applies a linear orthogonal transformation of the passed data. Argument $center = TRUE$ means the columns are centered. Argument $scale = TRUE$ only makes only sense if variables are measured on the same scale, which is not the case. The center component corresponds to the means of the variables.
 
 ```{r message=FALSE, warning=FALSE}
 # PCA method
@@ -697,15 +697,14 @@ sf_crime.pca.var <- sf_crime.pca$sdev^2
 sf_crime.pca$sdev^2
 ```
 
-The percentage of variation explained by PC's.
+The percentage of variation of each PC is calculated as:
 ```{r message=FALSE, warning=FALSE}
 # Percentage of Variation
 sf_crime.pca.var.per <- sf_crime.pca.var/sum(sf_crime.pca.var) * 100
 sf_crime.pca.var.per
 ```
 
-Here we can see what variables have the largest effect
-
+Here we can see what variables have the largest effect:
 ```{r message=FALSE, warning=FALSE}
 sf_crime.pca.rotation <- sf_crime.pca$rotation[ , 1]
 sort(abs(sf_crime.pca.rotation) , decreasing = TRUE) %>% knitr::kable()
@@ -722,7 +721,7 @@ plot(sf_crime.pca, type="lines")
 fviz_eig(sf_crime.pca, addlabels = TRUE)
 ```
 
-Plotting first two components of PCA. The plot shows how close are the observations to each other if they build clusters.
+The first 2 components account for the largest amount of variability. This plot shows how close are the observations to each other if they build clusters:
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #  Plot PC1 and PC2 to have more information
@@ -732,7 +731,7 @@ data.frame(PC1 = sf_crime.pca$x[,1], PC2 = sf_crime.pca$x[,2], label=factor(trai
   geom_point(cex=3, pch=21) 
 ```
 
-In next step transformation will be applied to train and test data. Knn method will be fit on the reduced data set with relevant predictors.
+In the next step a transformation will be applied to train and test data. The Knn method will be fit on the reduced data set with relevant predictors.
 
 ```{r message=FALSE, warning=FALSE}
 # Preparation for model fitting: calculate means of Columns 
@@ -794,12 +793,11 @@ confusionMatrix(y_hat,
 ```
 
 # Results and Disscussion
-Due to the computational power the a small data set was chosen which led to limitations in the chose of models. The goal of the analysis was to predict the crime category. There are 39 different crime categories  listed. Analysis applied to predict variable *Category* yielded a very low Accuracy. Some of the 39 Categories don't include enough observations or information to build a reliable prediction. Therefore the variable *Category* was transform into a dummy variable *Category_Violent_dummy* was assigned value 1 when "ASSAULT", "ROBBERY", "SEX OFFENSES, FORCIBLE", "KIDNAPPING" and value 0 otherwise. All performed methods first were applied on train and test and additionally on the **validation** and **sf_crime_p** data.
-First *Logistic Regression* with one predictor was applied with $Accuracy = 0.427$ with is below the guessing rate. By extending the number of predictors by 7 the the Accuracy increased to 63%. This model was fit to the **validation** and **sf_crime_p** data and showed $Accuracy = 0.626$.
+Due to the computational complexity a small data set was chosen, which led to limitations in the choice of models. The goal of the analysis was to predict the crime category. There are 39 different crime categories listed. Analysis applied to predict variable *Category* yielded a very low Accuracy. Some of the 39 Categories don't include enough observations or information to build a reliable prediction. Therefore the variable *Category* was transformed into a dummy variable.  *Category_Violent_dummy* was assigned value 1 when "ASSAULT", "ROBBERY", "SEX OFFENSES, FORCIBLE", "KIDNAPPING" and value 0 otherwise. All performed methods first were applied on train and test and additionally on the **validation** and **sf_crime_p** data.
+First *Logistic Regression* with one predictor was applied with $Accuracy = 0.427$ which is below the guessing rate. By extending the number of predictors by 7 the the Accuracy increased to 63%. This model was fit to the **validation** and **sf_crime_p** data and showed $Accuracy = 0.626$.
 
-In order to improve the results and to reduce the number of predictors *Principal Component Analysis* (PCA) was used. First the method was applied to the train data with 7 predictors such as: *Resolution_dummy*, *Count_Address_Occur*, *Time_Hour*,  *Date_Day*, *Date_Month*, *X* and *Y* for location. PCA showed that *Count_Address_Occur*, *Date_Day* and *Date_Month* have the largest effect and that first 3 PC's explain almost 100% of the variation in the data. Therefore only first 3 PC's were taken into account to predict *Category_Violent_dummy*. The obtained result $Accuracy = 0.798$. As conclusion results obtained from PCA yielded higher $Accuracy$ with less predictors than results obtained from *Logistic Regression*. 
-The difficulty of having the memory capacity limitations led to the reduction of the analysis techniques. 
+In order to improve the results and to reduce the number of predictors *Principal Component Analysis* (PCA) was used. First the method was applied to the train data with 7 predictors such as: *Resolution_dummy*, *Count_Address_Occur*, *Time_Hour*,  *Date_Day*, *Date_Month*, *X* and *Y* for location. PCA showed that *Count_Address_Occur*, *Date_Day* and *Date_Month* have the largest effect and that first 3 PC's explain almost 100% of the variation in the data. Therefore only first 3 PC's were taken into account to predict *Category_Violent_dummy*. The obtained result was $Accuracy = 0.798$. Results obtained from PCA yielded higher $Accuracy$ with less predictors than results obtained from *Logistic Regression*. 
 
-
+The difficulty of having memory capacity limitations led to the reduction of the analysis techniques. 
 
 [^1]: https://rafalab.github.io/dsbook/
