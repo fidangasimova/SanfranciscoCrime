@@ -4,3 +4,4 @@ The Capstone Project is a final course in HarvardX's multi-part Data Science Pro
 
 ## Project II: Sanfranciso Crime Dataset (2016)
 Analyzing and Visualizing Crime in San Francisco. A machine learning algorithms ( PCA) will be trained by using the inputs in one subset to predict resolved crime.
+[Final Report](https://github.com/fidangasimova/SanfranciscoCrime/blob/main/Report.pdf)
